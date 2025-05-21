@@ -1,8 +1,8 @@
 import React from "react";
 import { Link as RouterLink } from "react-router-dom";
 import styled from "styled-components";
-import { useAuth } from "../contexts/authContextDef";
 import { BiMoon, BiSun } from "react-icons/bi";
+import { useAuth } from "../contexts/Auth/authContextDef";
 
 interface HeaderProps {
   toggleTheme: () => void;
@@ -11,13 +11,14 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ toggleTheme, themeMode }) => {
   const { user, isLoading } = useAuth();
+  const title = "TriDay"!;
 
   if (isLoading) {
     return (
       <StyledHeaderWrapper>
         <SiteTitle>
           <StyledRouterLink to="/" $isSiteTitle={true}>
-            My App
+            {title}
           </StyledRouterLink>
         </SiteTitle>
         <Nav>Loading...</Nav>
@@ -29,7 +30,7 @@ const Header: React.FC<HeaderProps> = ({ toggleTheme, themeMode }) => {
     <StyledHeaderWrapper>
       <SiteTitle>
         <StyledRouterLink to="/" $isSiteTitle={true}>
-          My App
+          {title}
         </StyledRouterLink>
       </SiteTitle>
       <Nav>
@@ -37,6 +38,7 @@ const Header: React.FC<HeaderProps> = ({ toggleTheme, themeMode }) => {
           <>
             <StyledRouterLink to="/">Home</StyledRouterLink>
             <StyledRouterLink to="/profile">Profile</StyledRouterLink>
+            <StyledRouterLink to="/calendar">Calendar</StyledRouterLink>
             <ThemeToggleButton
               onClick={toggleTheme}
               aria-label={`Switch to ${

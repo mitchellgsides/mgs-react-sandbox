@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import { useAuth } from "../contexts/authContextDef";
-import darkTheme from "../theme/darkTheme"; // Adjust path as necessary
+import { useAuth } from "../contexts/Auth/authContextDef";
+import { darkTheme } from "../theme/theme"; // Adjust path as necessary
 import type { Profile } from "../supabase/supabase.auth"; // Assuming Profile type is defined here
 import SignOutButton from "../components/SignOut";
 

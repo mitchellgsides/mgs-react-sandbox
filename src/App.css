@@ -1,42 +1,37 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* 
+  This file is kept minimal as most styling is handled by styled-components.
+  Only include utility classes or styles that can't be covered by your theme system.
+*/
+
+/* Utility classes that align with your theme */
+.text-primary {
+  color: #B71C1C; /* Match primary from light theme */
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.text-secondary {
+  color: #E57373; /* Match secondary from light theme */
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.bg-surface {
+  background-color: #ffffff; /* Match surface from light theme */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* Accessibility helpers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
-.card {
-  padding: 2em;
+/* Transitions that might be reused */
+.fade-transition {
+  transition: opacity 0.2s ease-in-out;
 }
 
-.read-the-docs {
-  color: #888;
-}
+/* Any legacy styles that are still needed can be included here */

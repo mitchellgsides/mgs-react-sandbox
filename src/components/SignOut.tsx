@@ -1,6 +1,6 @@
 import React from "react";
 import styled from "styled-components"; // Import styled
-import { useAuth } from "../contexts/authContextDef"; // Adjust the path as necessary
+import { useAuth } from "../contexts/Auth/authContextDef"; // Adjust the path as necessary
 import Button from "../lib/components/Button";
 
 const SignOutButton: React.FC = () => {

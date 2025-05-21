@@ -1,8 +1,10 @@
-// Example usage in your App.tsx or main entry point
 import React from "react";
 import ReactDOM from "react-dom/client";
+// Import CSS in the correct order - base CSS first, then app-specific styles
+import "./index.css";
+import "./App.css";
 import App from "./App";
-import { AuthProvider } from "./contexts/AuthContext"; // Adjust path as needed
+import { AuthProvider } from "./contexts/Auth/AuthContext"; // Adjust path as needed
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement

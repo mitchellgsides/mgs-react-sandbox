@@ -8,20 +8,20 @@ import {
   Link,
 } from "react-router-dom";
 import styled, { ThemeProvider } from "styled-components"; // Import styled
-import { useAuth } from "./contexts/authContextDef";
 import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
+import CalendarPage from "./pages/Calendar/CalendarPage";
 import Header from "./components/Header";
-import lightTheme from "./theme/lightTheme";
-import darkTheme from "./theme/darkTheme";
+import { lightTheme, darkTheme } from "./theme/theme";
 import GlobalStyle from "./theme/GlobalStyle";
+import { useAuth } from "./contexts/Auth/authContextDef";
 
 // A layout for authenticated users
 const AuthenticatedLayout: React.FC = () => {
   return (
     // Using ContentWrapper or a more specific styled main element
     <ContentWrapper>
-      <Outlet /> {/* Child routes will render here */}
+      <Outlet /> {/* Child routes will render here too */}
     </ContentWrapper>
   );
 };
@@ -112,7 +112,8 @@ function App() {
                       This is your authenticated app content dashboard.
                     </TextBlock>
                     <TextBlock>
-                      Navigate to your <Link to="/profile">profile</Link>.
+                      Navigate to your <Link to="/profile">profile</Link> or
+                      check out the <Link to="/calendar">calendar</Link>.
                     </TextBlock>
                   </PageContainer>
                 }
@@ -128,6 +129,14 @@ function App() {
               <Route
                 path="/home"
                 element={<PageContainer>Home Page (Protected)</PageContainer>}
+              />
+              <Route
+                path="/calendar"
+                element={
+                  <PageContainer className="calendar-page">
+                    <CalendarPage />
+                  </PageContainer>
+                }
               />
             </Route>
 
@@ -152,26 +161,46 @@ const AppWrapper = styled.div`
 `;
 
 const ContentWrapper = styled.main`
-  flex-grow: 1;
-  padding: ${({ theme }) => theme.spacing.md};
-  background-color: ${({ theme }) => theme.colors.background};
+  flex: 1;
+  padding: 20px;
+`;
+
+const PageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: ${({ theme }) => theme.spacing.lg};
+  max-width: 1200px;
+  margin: 0 auto;
+
+  &.calendar-page {
+    padding: ${({ theme }) => theme.spacing.sm};
+    max-width: 100%;
+    width: 100%;
+  }
+`;
+
+const TextBlock = styled.p`
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: ${({ theme }) => theme.colors.text};
+  text-align: center;
+
+  a {
+    color: ${({ theme }) => theme.colors.primary};
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 `;
 
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh; // Full viewport height for initial load
+  min-height: 100vh;
   font-size: 1.2rem;
-  color: ${({ theme }) => theme.colors.text};
-`;
-
-const PageContainer = styled.div`
-  padding: ${({ theme }) => theme.spacing.lg};
-  text-align: center; // Example styling
-`;
-
-const TextBlock = styled.p`
-  margin-bottom: ${({ theme }) => theme.spacing.md};
-  color: ${({ theme }) => theme.colors.text};
+  color: ${({ theme }) => theme.colors.primary};
 `;

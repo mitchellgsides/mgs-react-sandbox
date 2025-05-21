@@ -7,7 +7,7 @@ import type {
   AuthChangeEvent,
   UserAttributes, // Import UserAttributes
 } from "@supabase/supabase-js";
-import { supabaseAuth, type Profile } from "../supabase/supabase.auth";
+import { supabaseAuth, type Profile } from "../../supabase/supabase.auth";
 import { AuthContext } from "./authContextDef";
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
