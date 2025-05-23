@@ -20,6 +20,7 @@ type CalendarContextType = {
   loadMoreWeeks: (direction: "before" | "after") => void;
   handleDayClick: (day: Date) => void;
   handleWorkoutClick: (workout: Workout) => void;
+  handleWorkoutDayClick: (day: Date, workout?: Workout) => void;
   selectedWorkout: Workout | null;
   setSelectedWorkout: React.Dispatch<React.SetStateAction<Workout | null>>;
   workouts: Workout[];
@@ -52,8 +53,18 @@ export const CalendarContextProvider: React.FC<CalendarProviderProps> = ({
   const today = new Date();
 
   const handleDayClick = (day: Date) => {
-    console.log("xxx clicked day:", day);
     setSelectedDate(day);
+    setSelectedWorkout(null);
+  };
+
+  const handleWorkoutDayClick = (day: Date, workout?: Workout) => {
+    setSelectedDate(day);
+
+    if (workout) {
+      setSelectedWorkout(workout);
+    } else {
+      setSelectedWorkout(null);
+    }
   };
 
   const handleWorkoutClick = (workout: Workout) => {
@@ -115,6 +126,7 @@ export const CalendarContextProvider: React.FC<CalendarProviderProps> = ({
     loadMoreWeeks,
     handleDayClick,
     handleWorkoutClick,
+    handleWorkoutDayClick,
     selectedWorkout,
     setSelectedWorkout,
     workouts,

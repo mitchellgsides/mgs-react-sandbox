@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { format, startOfWeek, addWeeks, subWeeks, isSameDay } from "date-fns";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
-import DayDetails from "./components/DayDetails";
+import DayDetails from "./components/Day/DayDetails";
 import WeekRow from "./components/WeekRow";
 import { useCalendarContext } from "./context/CalendarContext";
 
@@ -14,12 +14,11 @@ const CalendarPage: React.FC = () => {
   const {
     visibleWeeks,
     setVisibleWeeks,
-    selectedDate,
-    setSelectedDate,
     currentWeek,
     today,
     loadMoreWeeks,
-    handleDayClick,
+    selectedDate,
+    setSelectedDate,
   } = useCalendarContext();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -342,15 +341,13 @@ const CalendarPage: React.FC = () => {
                   isCurrentWeekRow={isCurrentWeekRow}
                   key={weekStart.toISOString()}
                   weekStart={weekStart}
-                  handleDayClick={handleDayClick}
-                  selectedDate={selectedDate}
                 />
               );
             })}
           </Calendar>
         </CalendarContainer>
 
-        <DayDetails selectedDate={selectedDate} />
+        {selectedDate && <DayDetails />}
       </CalendarContent>
     </PageContainer>
   );

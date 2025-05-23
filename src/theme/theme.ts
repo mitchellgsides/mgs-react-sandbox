@@ -48,9 +48,14 @@ export const darkTheme: DefaultTheme = {
     light: "#adb5bd", // Used for lighter text or elements on dark backgrounds
     dark: "#f8f9fa", // This was for text/elements on dark, might need review if it was for surfaces
     text: "#dee2e6", // Main text (light gray/off-white)
+    /* original dark theme, very dark
     background: "#171212", // Page background (very dark gray/black)
     surface: "#1c1c1c", // Card/Section background (dark gray)
     border: "#1c1c1c", // Border color (medium-dark gray)
+    */
+    background: "#1e1a1a", // Page background (slightly lighter dark gray)
+    surface: "#252525", // Card/Section background (lighter dark gray)
+    border: "#323232", // Border color (medium gray with slight contrast)
   },
   fonts: {
     main: "'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
