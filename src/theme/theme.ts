@@ -2,8 +2,8 @@ import type { DefaultTheme } from "styled-components";
 
 export const lightTheme: DefaultTheme = {
   colors: {
-    primary: "#B71C1C", // Deeper Red
-    secondary: "#E57373", // Lighter Red
+    primary: "#b61a1a", // Deeper Red
+    secondary: "#8b4949", // Lighter Red
     success: "#28a745",
     danger: "#dc3545", // This is already a red, you might want to adjust if it clashes
     warning: "#ffc107",
@@ -16,9 +16,9 @@ export const lightTheme: DefaultTheme = {
     border: "#dee2e6",
   },
   fonts: {
-    main: "'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
+    main: "'Inter', 'Lexend', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
     heading:
-      "'Montserrat', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
+      "'Lexend', 'Montserrat', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
   },
   spacing: {
     xs: "0.25rem", // 4px
@@ -39,8 +39,8 @@ export const lightTheme: DefaultTheme = {
 
 export const darkTheme: DefaultTheme = {
   colors: {
-    primary: "#D32F2F", // Deeper Red for dark mode
-    secondary: "#EF5350", // Lighter Red for dark mode
+    primary: "#b61a1a", // Deeper Red for dark mode
+    secondary: "#8b4949", // Lighter Red for dark mode
     success: "#198754", // Keep or adjust if needed
     danger: "#dc3545", // This is already red, ensure distinctness or adjust
     warning: "#ffc107", // Keep or adjust if needed

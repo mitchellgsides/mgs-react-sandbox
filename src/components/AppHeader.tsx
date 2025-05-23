@@ -3,15 +3,16 @@ import { Link as RouterLink } from "react-router-dom";
 import styled from "styled-components";
 import { BiMoon, BiSun } from "react-icons/bi";
 import { useAuth } from "../contexts/Auth/authContextDef";
+import { PiGraph } from "react-icons/pi";
 
-interface HeaderProps {
+interface AppHeaderProps {
   toggleTheme: () => void;
   themeMode: "dark" | "light";
 }
 
-const Header: React.FC<HeaderProps> = ({ toggleTheme, themeMode }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({ toggleTheme, themeMode }) => {
   const { user, isLoading } = useAuth();
-  const title = "TriDay"!;
+  const title = "Equip Endurance"!;
 
   if (isLoading) {
     return (
@@ -29,6 +30,7 @@ const Header: React.FC<HeaderProps> = ({ toggleTheme, themeMode }) => {
   return (
     <StyledHeaderWrapper>
       <SiteTitle>
+        <PiGraph style={{ padding: "10px", height: 50, width: 50 }} />
         <StyledRouterLink to="/" $isSiteTitle={true}>
           {title}
         </StyledRouterLink>
@@ -63,7 +65,7 @@ const StyledHeaderWrapper = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.xl};
+  padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.md};
   background-color: ${({ theme }) =>
     theme.colors.primary}; // Use primary color for background
   border-bottom: 1px solid ${({ theme }) => theme.colors.border}; // Border might need to contrast with primary
@@ -75,6 +77,8 @@ const StyledHeaderWrapper = styled.header`
 const SiteTitle = styled.div`
   font-size: 1.5rem;
   font-weight: bold;
+  display: flex;
+  align-items: center;
 `;
 
 const Nav = styled.nav`
@@ -90,11 +94,8 @@ const StyledRouterLink = styled(RouterLink)<{ $isSiteTitle?: boolean }>`
   font-weight: bold;
 
   &:hover {
-    // Adjust hover color to also contrast with primary background and be subtly different
     opacity: 0.8;
-    // Alternatively, use a slightly darker or lighter shade of theme.colors.light if available/appropriate
-    // color: ${({ theme }) =>
-      theme.colors.secondary}; // Example: if secondary contrasts well and fits
+    color: ${({ theme }) => theme.colors.secondary};
   }
 `;
 
@@ -114,4 +115,4 @@ const ThemeToggleButton = styled.button`
   }
 `;
 
-export default Header;
+export default AppHeader;

@@ -11,10 +11,11 @@ import styled, { ThemeProvider } from "styled-components"; // Import styled
 import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
 import CalendarPage from "./pages/Calendar/CalendarPage";
-import Header from "./components/Header";
+import AppHeader from "./components/AppHeader";
 import { lightTheme, darkTheme } from "./theme/theme";
 import GlobalStyle from "./theme/GlobalStyle";
 import { useAuth } from "./contexts/Auth/authContextDef";
+import { CalendarContextProvider } from "./pages/Calendar/context/CalendarContext";
 
 // A layout for authenticated users
 const AuthenticatedLayout: React.FC = () => {
@@ -82,7 +83,7 @@ function App() {
         <GlobalStyle />
         <Router>
           <AppWrapper>
-            <Header toggleTheme={toggleTheme} themeMode={themeMode} />
+            <AppHeader toggleTheme={toggleTheme} themeMode={themeMode} />
             <LoadingContainer>Loading application...</LoadingContainer>
           </AppWrapper>
         </Router>
@@ -95,7 +96,7 @@ function App() {
       <GlobalStyle />
       <Router>
         <AppWrapper>
-          <Header toggleTheme={toggleTheme} themeMode={themeMode} />
+          <AppHeader toggleTheme={toggleTheme} themeMode={themeMode} />
           <Routes>
             <Route
               path="/login"
@@ -134,7 +135,9 @@ function App() {
                 path="/calendar"
                 element={
                   <PageContainer className="calendar-page">
-                    <CalendarPage />
+                    <CalendarContextProvider>
+                      <CalendarPage />
+                    </CalendarContextProvider>
                   </PageContainer>
                 }
               />

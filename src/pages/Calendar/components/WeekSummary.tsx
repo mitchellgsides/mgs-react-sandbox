@@ -2,7 +2,7 @@ import { endOfWeek, format, startOfWeek } from "date-fns";
 import styled from "styled-components";
 
 type WeekSummaryProps = {
-  selectedDate: Date;
+  selectedDate: Date | null;
 };
 
 const WeekSummary = ({ selectedDate }: WeekSummaryProps) => {
@@ -15,8 +15,14 @@ const WeekSummary = ({ selectedDate }: WeekSummaryProps) => {
         {/* Week summary content will go here */}
         <p>
           Summary of events for the week of{" "}
-          {format(startOfWeek(selectedDate, { weekStartsOn: 0 }), "MMM d")} -{" "}
-          {format(endOfWeek(selectedDate, { weekStartsOn: 0 }), "MMM d")}
+          {selectedDate != null &&
+            format(
+              startOfWeek(selectedDate, { weekStartsOn: 0 }),
+              "MMM d"
+            )}{" "}
+          -{" "}
+          {selectedDate != null &&
+            format(endOfWeek(selectedDate, { weekStartsOn: 0 }), "MMM d")}
         </p>
       </WeekSummaryContent>
     </WeekSummaryContainer>
@@ -27,9 +33,9 @@ export default WeekSummary;
 
 const WeekSummaryContainer = styled.div`
   flex: 1;
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: 8px;
-  background-color: ${({ theme }) => theme.colors.surface};
+  // background-color: ${({ theme }) => theme.colors.surface};
   overflow-y: auto;
 `;
 
@@ -40,8 +46,7 @@ const WeekSummaryContent = styled.div`
 const DetailHeader = styled.div`
   padding: ${({ theme }) => theme.spacing.md};
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  background-color: ${({ theme }) => theme.colors.background};
-
+  // background-color: ${({ theme }) => theme.colors.background};
   h2,
   h3 {
     margin: 0;

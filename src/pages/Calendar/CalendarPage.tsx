@@ -1,28 +1,33 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
-import {
-  format,
-  startOfWeek,
-  endOfWeek,
-  addWeeks,
-  subWeeks,
-  isSameDay,
-  eachDayOfInterval,
-} from "date-fns";
+import { format, startOfWeek, addWeeks, subWeeks, isSameDay } from "date-fns";
+import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import DayDetails from "./components/DayDetails";
-import DayCell from "./components/DayCell";
+import WeekRow from "./components/WeekRow";
+import { useCalendarContext } from "./context/CalendarContext";
+
+// Constants for performance optimization
+export const MAX_WEEKS = 20; // Maximum number of weeks to keep in memory
+export const WEEKS_TO_LOAD = 5; // Number of weeks to load at a time
 
 const CalendarPage: React.FC = () => {
-  const [visibleWeeks, setVisibleWeeks] = useState<Date[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  // @ts-expect-error unused variable
-  const [currentWeek, setCurrentWeek] = useState<Date>(
-    startOfWeek(new Date(), { weekStartsOn: 0 })
-  );
+  const {
+    visibleWeeks,
+    setVisibleWeeks,
+    selectedDate,
+    setSelectedDate,
+    currentWeek,
+    today,
+    loadMoreWeeks,
+    handleDayClick,
+  } = useCalendarContext();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
-  const today = new Date();
+
+  // Throttle scroll handling to improve performance
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoadingRef = useRef<boolean>(false);
 
   // Initialize with 10 weeks (5 before current, 5 after)
   useEffect(() => {
@@ -31,64 +36,15 @@ const CalendarPage: React.FC = () => {
       initialWeeks.push(addWeeks(currentWeek, i));
     }
     setVisibleWeeks(initialWeeks);
-  }, []);
+  }, [currentWeek]);
 
   // Scroll to center only when component mounts
   useEffect(() => {
     if (scrollContainerRef.current && calendarRef.current) {
       scrollToToday();
     }
-    // Only run once on mount, no dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Constants for performance optimization
-  const MAX_WEEKS = 20; // Maximum number of weeks to keep in memory
-  const WEEKS_TO_LOAD = 5; // Number of weeks to load at a time
-
-  const loadMoreWeeks = useCallback(
-    (direction: "before" | "after") => {
-      setVisibleWeeks((prev) => {
-        // Limit the total number of weeks to prevent memory issues
-        if (prev.length >= MAX_WEEKS) {
-          if (direction === "before") {
-            // Remove weeks from the end when adding to the beginning
-            const firstWeek = prev[0];
-            const newWeeks = Array.from({ length: WEEKS_TO_LOAD }, (_, i) =>
-              subWeeks(firstWeek, i + 1)
-            ).reverse();
-            return [...newWeeks, ...prev.slice(0, MAX_WEEKS - WEEKS_TO_LOAD)];
-          } else {
-            // Remove weeks from the beginning when adding to the end
-            const lastWeek = prev[prev.length - 1];
-            const newWeeks = Array.from({ length: WEEKS_TO_LOAD }, (_, i) =>
-              addWeeks(lastWeek, i + 1)
-            );
-            return [...prev.slice(WEEKS_TO_LOAD), ...newWeeks];
-          }
-        } else {
-          // Normal loading when under the limit
-          if (direction === "before") {
-            const firstWeek = prev[0];
-            const newWeeks = Array.from({ length: WEEKS_TO_LOAD }, (_, i) =>
-              subWeeks(firstWeek, i + 1)
-            ).reverse();
-            return [...newWeeks, ...prev];
-          } else {
-            const lastWeek = prev[prev.length - 1];
-            const newWeeks = Array.from({ length: WEEKS_TO_LOAD }, (_, i) =>
-              addWeeks(lastWeek, i + 1)
-            );
-            return [...prev, ...newWeeks];
-          }
-        }
-      });
-    },
-    [MAX_WEEKS, WEEKS_TO_LOAD]
-  );
-
-  // Throttle scroll handling to improve performance
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isLoadingRef = useRef<boolean>(false);
 
   const handleScroll = useCallback(() => {
     if (!scrollContainerRef.current || isLoadingRef.current) return;
@@ -126,16 +82,19 @@ const CalendarPage: React.FC = () => {
     if (!scrollContainerRef.current || !calendarRef.current) return;
 
     // Reset to a more manageable number of weeks when clicking Today
-    const todayStart = startOfWeek(new Date(), { weekStartsOn: 0 });
+    const todayWeekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
 
     // Reset visible weeks around today to prevent memory bloat
     setVisibleWeeks(() => {
       const initialWeeks = [];
       for (let i = -5; i <= 5; i++) {
-        initialWeeks.push(addWeeks(todayStart, i));
+        initialWeeks.push(addWeeks(todayWeekStart, i));
       }
       return initialWeeks;
     });
+
+    const todayStart = new Date(); // Get the current date and time
+    setSelectedDate(todayStart);
 
     // Schedule scrolling after state update and rendering
     setTimeout(() => {
@@ -145,10 +104,6 @@ const CalendarPage: React.FC = () => {
       }
     }, 50);
   }, []);
-
-  const handleDayClick = (day: Date) => {
-    setSelectedDate(day);
-  };
 
   // Track the current visible month for the header
   const [currentVisibleMonth, setCurrentVisibleMonth] = useState(
@@ -191,6 +146,147 @@ const CalendarPage: React.FC = () => {
     }
   }, []);
 
+  // Navigation functions for months
+  const navigatePrevMonth = useCallback(() => {
+    // Find most visible week, then go back 4 weeks
+    if (scrollContainerRef.current) {
+      const containerRect = scrollContainerRef.current.getBoundingClientRect();
+      const weekElements = document.querySelectorAll("[data-week-start]");
+
+      let mostVisibleWeek: Element | null = null;
+      let maxVisibleArea = 0;
+
+      weekElements.forEach((week) => {
+        const rect = week.getBoundingClientRect();
+        const visibleHeight = Math.max(
+          0,
+          Math.min(rect.bottom, containerRect.bottom) -
+            Math.max(rect.top, containerRect.top)
+        );
+        const visibleArea = visibleHeight * rect.width;
+
+        if (visibleArea > maxVisibleArea) {
+          maxVisibleArea = visibleArea;
+          mostVisibleWeek = week;
+        }
+      });
+
+      if (mostVisibleWeek) {
+        const weekStartAttr = (mostVisibleWeek as Element).getAttribute(
+          "data-week-start"
+        );
+        if (weekStartAttr) {
+          const currentVisibleWeek = new Date(weekStartAttr);
+          // Go back 4 weeks (approximately 1 month)
+          const targetWeek = subWeeks(currentVisibleWeek, 4);
+
+          // Try to find a week element for the target week
+          const targetElement = document.querySelector(
+            `[data-week-start="${targetWeek.toISOString()}"]`
+          );
+
+          if (targetElement) {
+            targetElement.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          } else {
+            // If week isn't loaded yet, reset weeks around target week and scroll
+            setVisibleWeeks(() => {
+              const newWeeks = [];
+              for (let i = -5; i <= 5; i++) {
+                newWeeks.push(addWeeks(targetWeek, i));
+              }
+              return newWeeks;
+            });
+
+            setTimeout(() => {
+              const newTargetElement = document.querySelector(
+                `[data-week-start="${targetWeek.toISOString()}"]`
+              );
+              if (newTargetElement) {
+                newTargetElement.scrollIntoView({
+                  behavior: "smooth",
+                  block: "center",
+                });
+              }
+            }, 50);
+          }
+        }
+      }
+    }
+  }, []);
+
+  const navigateNextMonth = useCallback(() => {
+    // Similar to prev month but adding 4 weeks
+    if (scrollContainerRef.current) {
+      const containerRect = scrollContainerRef.current.getBoundingClientRect();
+      const weekElements = document.querySelectorAll("[data-week-start]");
+
+      let mostVisibleWeek: Element | null = null;
+      let maxVisibleArea = 0;
+
+      weekElements.forEach((week) => {
+        const rect = week.getBoundingClientRect();
+        const visibleHeight = Math.max(
+          0,
+          Math.min(rect.bottom, containerRect.bottom) -
+            Math.max(rect.top, containerRect.top)
+        );
+        const visibleArea = visibleHeight * rect.width;
+
+        if (visibleArea > maxVisibleArea) {
+          maxVisibleArea = visibleArea;
+          mostVisibleWeek = week;
+        }
+      });
+
+      if (mostVisibleWeek) {
+        const weekStartAttr = (mostVisibleWeek as Element).getAttribute(
+          "data-week-start"
+        );
+        if (weekStartAttr) {
+          const currentVisibleWeek = new Date(weekStartAttr);
+          // Go forward 4 weeks (approximately 1 month)
+          const targetWeek = addWeeks(currentVisibleWeek, 4);
+
+          // Try to find a week element for the target week
+          const targetElement = document.querySelector(
+            `[data-week-start="${targetWeek.toISOString()}"]`
+          );
+
+          if (targetElement) {
+            targetElement.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          } else {
+            // If week isn't loaded yet, reset weeks around target week and scroll
+            setVisibleWeeks(() => {
+              const newWeeks = [];
+              for (let i = -5; i <= 5; i++) {
+                newWeeks.push(addWeeks(targetWeek, i));
+              }
+              return newWeeks;
+            });
+
+            setTimeout(() => {
+              const newTargetElement = document.querySelector(
+                `[data-week-start="${targetWeek.toISOString()}"]`
+              );
+              if (newTargetElement) {
+                newTargetElement.scrollIntoView({
+                  behavior: "smooth",
+                  block: "center",
+                });
+              }
+            }, 50);
+          }
+        }
+      }
+    }
+  }, []);
+
   // Add scroll event to update visible month
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -205,11 +301,34 @@ const CalendarPage: React.FC = () => {
   return (
     <PageContainer>
       <CalendarHeader>
-        <CalendarTitle>{currentVisibleMonth}</CalendarTitle>
-        <TodayButton onClick={scrollToToday}>Today</TodayButton>
+        <HeaderLeft>
+          <MonthNavigationButtons>
+            <NavButton onClick={navigatePrevMonth} aria-label="Previous month">
+              <IoChevronBack />
+            </NavButton>
+            <CalendarTitle>{currentVisibleMonth}</CalendarTitle>
+            <NavButton onClick={navigateNextMonth} aria-label="Next month">
+              <IoChevronForward />
+            </NavButton>
+          </MonthNavigationButtons>
+          <TodayButton onClick={scrollToToday}>Today</TodayButton>
+        </HeaderLeft>
       </CalendarHeader>
 
-      <MainContent>
+      <CalendarContent>
+        <DayTitles>
+          {[
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+          ].map((day) => (
+            <DayTitleItem key={day}>{day}</DayTitleItem>
+          ))}
+        </DayTitles>
         <CalendarContainer ref={scrollContainerRef} onScroll={handleScroll}>
           <Calendar ref={calendarRef}>
             {visibleWeeks.map((weekStart) => {
@@ -220,30 +339,19 @@ const CalendarPage: React.FC = () => {
 
               return (
                 <WeekRow
+                  isCurrentWeekRow={isCurrentWeekRow}
                   key={weekStart.toISOString()}
-                  id={isCurrentWeekRow ? "current-week" : undefined}
-                  isCurrentWeek={isCurrentWeekRow}
-                  data-week-start={weekStart.toISOString()}
-                >
-                  {eachDayOfInterval({
-                    start: weekStart,
-                    end: endOfWeek(weekStart, { weekStartsOn: 0 }),
-                  }).map((day) => (
-                    <DayCell
-                      key={day.toISOString()}
-                      day={day}
-                      handleDayClick={handleDayClick}
-                      selectedDate={selectedDate}
-                    />
-                  ))}
-                </WeekRow>
+                  weekStart={weekStart}
+                  handleDayClick={handleDayClick}
+                  selectedDate={selectedDate}
+                />
               );
             })}
           </Calendar>
         </CalendarContainer>
 
         <DayDetails selectedDate={selectedDate} />
-      </MainContent>
+      </CalendarContent>
     </PageContainer>
   );
 };
@@ -264,14 +372,38 @@ const CalendarHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ theme }) => theme.spacing.sm}; /* Reduced from md to sm */
-  height: 40px; /* Make the header a bit shorter */
+  flex-direction: column;
+  margin-bottom: 0; /* Remove margin to align perfectly with grid below */
+  padding: 8px;
 `;
 
 const CalendarTitle = styled.h1`
   margin: 0;
-  font-size: 1.5rem; /* Smaller font size for a shorter header */
+  font-size: 1.5rem;
   font-weight: 600;
+`;
+
+const DayTitles = styled.div`
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  /* margin accounts for scrollbar width in CalendarContainer*/
+  margin-right: 8px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const DayTitleItem = styled.div`
+  padding: ${({ theme }) => theme.spacing.sm};
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-right: 1px solid ${({ theme }) => theme.colors.border};
+  background-color: ${({ theme }) => theme.colors.background};
+  font-size: 0.9rem;
+
+  &:last-child {
+    border-right: none;
+  }
 `;
 
 const TodayButton = styled.button`
@@ -289,7 +421,40 @@ const TodayButton = styled.button`
   }
 `;
 
-const MainContent = styled.div`
+const HeaderLeft = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
+  width: 100%;
+`;
+
+const MonthNavigationButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+`;
+
+const NavButton = styled.button`
+  background-color: transparent;
+  color: ${({ theme }) => theme.colors.text};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.background}50;
+  }
+`;
+
+const CalendarContent = styled.div`
   display: flex;
   flex-direction: column;
   height: calc(100vh - 100px);
@@ -299,10 +464,11 @@ const CalendarContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 8px;
-  background-color: ${({ theme }) => theme.colors.surface};
-  max-height: 45vh; /* Increased from fixed 400px to be more responsive */
-
+  border-top: none; /* Remove border-top since DayTitles has it */
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  background-color: ${({ theme }) => theme.colors.background};
+  max-height: 45vh;
   &::-webkit-scrollbar {
     width: 8px;
   }
@@ -314,21 +480,12 @@ const CalendarContainer = styled.div`
   &::-webkit-scrollbar-thumb {
     background-color: ${({ theme }) => theme.colors.border};
     border-radius: 20px;
-    border: 2px solid ${({ theme }) => theme.colors.surface};
+    border: 2px solid ${({ theme }) => theme.colors.background};
   }
 `;
 
 const Calendar = styled.div`
   width: 100%;
-`;
-
-const WeekRow = styled.div<{ isCurrentWeek?: boolean }>`
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  height: ${({ isCurrentWeek }) => (isCurrentWeek ? "220px" : "200px")};
-  background-color: ${({ isCurrentWeek, theme }) =>
-    isCurrentWeek ? `${theme.colors.surface}` : "transparent"};
 `;
 
 export default CalendarPage;
