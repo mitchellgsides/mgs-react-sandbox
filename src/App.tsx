@@ -17,6 +17,7 @@ import GlobalStyle from "./theme/GlobalStyle";
 import { useAuth } from "./contexts/Auth/authContextDef";
 import { CalendarContextProvider } from "./pages/Calendar/context/CalendarContext";
 import { UploadPage } from "./pages/UploadPage";
+import FitFilesTEMP from "./pages/FitFilesTEMP";
 
 // A layout for authenticated users
 const AuthenticatedLayout: React.FC = () => {
@@ -131,6 +132,14 @@ function App() {
               <Route
                 path="/home"
                 element={<PageContainer>Home Page (Protected)</PageContainer>}
+              />
+              <Route
+                path="/fit-files"
+                element={
+                  <PageContainer>
+                    <FitFilesTEMP />
+                  </PageContainer>
+                }
               />
               <Route
                 path="/upload"
