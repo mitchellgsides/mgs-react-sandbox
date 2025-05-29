@@ -17,7 +17,9 @@ import GlobalStyle from "./theme/GlobalStyle";
 import { useAuth } from "./contexts/Auth/authContextDef";
 import { CalendarContextProvider } from "./pages/Calendar/context/CalendarContext";
 import { UploadPage } from "./pages/UploadPage";
-import FitFilesTEMP from "./pages/FitFilesTEMP";
+import ActivityDetails from "./pages/ActivityDetails/ActivityDetails";
+import ActivityListPage from "./pages/ActivityDetails/ActivityListPage";
+import { ActivityDetailsContextProvider } from "./pages/ActivityDetails/context/ActivityDetailsContext";
 
 // A layout for authenticated users
 const AuthenticatedLayout: React.FC = () => {
@@ -134,10 +136,22 @@ function App() {
                 element={<PageContainer>Home Page (Protected)</PageContainer>}
               />
               <Route
-                path="/fit-files"
+                path="/activities"
                 element={
                   <PageContainer>
-                    <FitFilesTEMP />
+                    <ActivityDetailsContextProvider>
+                      <ActivityListPage />
+                    </ActivityDetailsContextProvider>
+                  </PageContainer>
+                }
+              />
+              <Route
+                path="/activities/:activityId"
+                element={
+                  <PageContainer>
+                    <ActivityDetailsContextProvider>
+                      <ActivityDetails />
+                    </ActivityDetailsContextProvider>
                   </PageContainer>
                 }
               />

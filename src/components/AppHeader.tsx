@@ -39,7 +39,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toggleTheme, themeMode }) => {
         {user ? (
           <>
             <StyledRouterLink to="/">Home</StyledRouterLink>
-            <StyledRouterLink to="/fit-files">Fit Files</StyledRouterLink>
+            <StyledRouterLink to="/activities">Activities</StyledRouterLink>
             <StyledRouterLink to="/profile">Profile</StyledRouterLink>
             <StyledRouterLink to="/calendar">Calendar</StyledRouterLink>
             <StyledRouterLink to="/upload">Upload</StyledRouterLink>

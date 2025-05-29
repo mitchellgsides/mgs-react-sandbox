@@ -1,15 +1,21 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import styled from "styled-components";
-import { DateTime } from "luxon";
-import { useAuth } from "../contexts/Auth/authContextDef";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
+import { useAuth } from "../../../contexts/Auth/authContextDef";
 import {
   getActivity,
   getUserActivities,
   type Activity,
   type GetActivitiesResponse,
-} from "../supabase/supabase.fitFiles";
-import { supabase } from "../supabase/supabase.client";
+} from "../../../supabase/supabase.fitFiles";
+import { supabase } from "../../../supabase/supabase.client";
 
+// ActivityRecord interface - move this here for shared use
 interface ActivityRecord {
   activity_id: string;
   altitude: number;
@@ -33,16 +39,43 @@ interface ActivityRecord {
   timer_time: number;
 }
 
-const FitFilesTEMP = () => {
+// Define the context type
+type ActivityDetailsContextType = {
+  // State
+  activities: Activity[];
+  loading: boolean;
+  error: string | null;
+  records: ActivityRecord[] | null;
+  selectedActivity: Activity | null;
+
+  // Actions
+  setSelectedActivity: (activity: Activity | null) => void;
+  refreshActivities: () => Promise<void>;
+  clearError: () => void;
+};
+
+const ActivityDetailsContext = createContext<
+  ActivityDetailsContextType | undefined
+>(undefined);
+
+type ActivityDetailsProviderProps = {
+  children: ReactNode;
+};
+
+// Provider component that will wrap components needing access to the activity details context
+export const ActivityDetailsContextProvider: React.FC<
+  ActivityDetailsProviderProps
+> = ({ children }) => {
   const { user } = useAuth();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [records, setRecords] = useState<ActivityRecord[] | null>(null); // Adjust type as needed
+  const [records, setRecords] = useState<ActivityRecord[] | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
     null
   );
 
+  // Fetch activities effect
   useEffect(() => {
     const fetchActivities = async () => {
       if (!user?.id) {
@@ -96,6 +129,7 @@ const FitFilesTEMP = () => {
     fetchActivities();
   }, [user?.id]);
 
+  // Fetch activity records effect
   useEffect(() => {
     const fetchActivityAndRecords = async () => {
       if (!activities.length) return;
@@ -152,125 +186,69 @@ const FitFilesTEMP = () => {
     fetchActivityAndRecords();
   }, [activities, selectedActivity]);
 
-  console.log("xxx fetched records:", records);
+  // Actions
+  const refreshActivities = useCallback(async () => {
+    if (!user?.id) return;
 
-  const formatDate = useCallback((timestamp: string): string => {
     try {
-      return DateTime.fromISO(timestamp).toFormat("MMMM dd, yyyy");
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "Invalid date";
+      setLoading(true);
+      setError(null);
+
+      const response: GetActivitiesResponse = await getUserActivities(user.id, {
+        limit: 20,
+        order_by: "activity_timestamp",
+        order_direction: "desc",
+      });
+
+      if (response.success) {
+        setActivities(response.data);
+      } else {
+        setError(response.error || "Failed to fetch activities");
+      }
+    } catch (err) {
+      console.error("Error fetching activities:", err);
+      setError("An unexpected error occurred while fetching activities");
+    } finally {
+      setLoading(false);
     }
+  }, [user?.id]);
+
+  const clearError = useCallback(() => {
+    setError(null);
   }, []);
 
-  const handleActivityClick = (activity: Activity) => {
-    console.log("Clicked activity full metadata:", activity);
-    setSelectedActivity(activity);
+  const value: ActivityDetailsContextType = {
+    // State
+    activities,
+    loading,
+    error,
+    records,
+    selectedActivity,
+
+    // Actions
+    setSelectedActivity,
+    refreshActivities,
+    clearError,
   };
 
-  const activityList = useMemo(() => {
-    return activities.map((activity) => (
-      <ActivityItem
-        key={activity.id}
-        onClick={() => handleActivityClick(activity)}
-      >
-        <ActivityDate>{formatDate(activity.activity_timestamp)}</ActivityDate>
-        {activity.sport && (
-          <ActivitySport>Sport: {activity.sport}</ActivitySport>
-        )}
-      </ActivityItem>
-    ));
-  }, [activities, formatDate]);
-
-  if (loading) {
-    return (
-      <Container>
-        <Title>Activities</Title>
-        <LoadingText>Loading activities...</LoadingText>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container>
-        <Title>Activities</Title>
-        <ErrorText>{error}</ErrorText>
-      </Container>
-    );
-  }
-
   return (
-    <Container>
-      <Title>Activities ({activities.length})</Title>
-
-      {activities.length === 0 ? (
-        <LoadingText>No activities found</LoadingText>
-      ) : (
-        <ActivityList>{activityList}</ActivityList>
-      )}
-    </Container>
+    <ActivityDetailsContext.Provider value={value}>
+      {children}
+    </ActivityDetailsContext.Provider>
   );
 };
 
-export default FitFilesTEMP;
+// Custom hook for consuming the context
+export const useActivityDetailsContext = (): ActivityDetailsContextType => {
+  const context = useContext(ActivityDetailsContext);
 
-// Styled Components
-const Container = styled.div`
-  padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
-`;
-
-const Title = styled.h1`
-  color: #333;
-  margin-bottom: 20px;
-`;
-
-const ActivityList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-`;
-
-const ActivityItem = styled.li`
-  background: #f5f5f5;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-  border-left: 4px solid #007bff;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #e9ecef;
-    transform: translateX(4px);
+  if (context === undefined) {
+    throw new Error(
+      "useActivityDetailsContext must be used within an ActivityDetailsContextProvider"
+    );
   }
-`;
 
-const ActivityDate = styled.div`
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-`;
+  return context;
+};
 
-const ActivitySport = styled.div`
-  font-size: 14px;
-  color: #666;
-  margin-top: 4px;
-`;
-
-const LoadingText = styled.div`
-  text-align: center;
-  color: #666;
-  font-style: italic;
-`;
-
-const ErrorText = styled.div`
-  color: #dc3545;
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
-  padding: 12px;
-  margin: 12px 0;
-`;
+export default ActivityDetailsContextProvider;
