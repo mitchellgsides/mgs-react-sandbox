@@ -3,6 +3,8 @@ import WeekSummary from "../WeekSummary";
 import WorkoutDetails from "./WorkoutDetails";
 import styled from "styled-components";
 import { useCalendarContext } from "../../context/CalendarContext";
+import DayText from "../../shared-styles/DayText";
+import { WorkoutDuration } from "../../../../components/DisplayStyles";
 
 const DayDetails = () => {
   const { handleWorkoutClick, selectedWorkout, selectedDate, workouts } =
@@ -27,15 +29,18 @@ const DayDetails = () => {
                 onClick={() => handleWorkoutClick(workout)}
                 isSelected={selectedWorkout?.id === workout.id}
               >
-                <div>{workout.name}</div>
-                <div>{workout.duration ?? ""}</div>
+                <DayText
+                  text={workout.name}
+                  size={24}
+                  workoutType={workout.type}
+                  showIcon
+                />
+                <WorkoutDuration duration={workout.duration ?? ""} />
               </DayItem>
             ))}
           </WorkoutList>
 
-          <WorkoutDetailPanel>
-            {selectedWorkout ? <WorkoutDetails /> : null}
-          </WorkoutDetailPanel>
+          {selectedWorkout ? <WorkoutDetails /> : <div />}
         </DayContent>
       </DayDetailContainer>
 
@@ -64,7 +69,7 @@ const DayItem = styled.div<{ isSelected?: boolean }>`
   background-color: ${({ isSelected, theme }) =>
     isSelected ? `${theme.colors.primary}20` : "transparent"};
   color: ${({ theme }) => theme.colors.text};
-  border-radius: 4px;
+  border-radius: 4px 0px 0px 4px;
   &:hover {
     background-color: ${({ theme }) => theme.colors.primary}20;
   }
@@ -81,11 +86,6 @@ const WorkoutList = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
-`;
-
-const WorkoutDetailPanel = styled.div`
-  display: flex;
-  flex-grow: 1;
 `;
 
 const DetailHeader = styled.div`
@@ -105,5 +105,4 @@ const DayContent = styled.div`
   width: 100%;
   display: grid;
   grid-template-columns: 1fr 3fr;
-  gap: ${({ theme }) => theme.spacing.md};
 `;

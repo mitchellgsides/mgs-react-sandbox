@@ -16,6 +16,7 @@ import { lightTheme, darkTheme } from "./theme/theme";
 import GlobalStyle from "./theme/GlobalStyle";
 import { useAuth } from "./contexts/Auth/authContextDef";
 import { CalendarContextProvider } from "./pages/Calendar/context/CalendarContext";
+import { UploadPage } from "./pages/UploadPage";
 
 // A layout for authenticated users
 const AuthenticatedLayout: React.FC = () => {
@@ -130,6 +131,14 @@ function App() {
               <Route
                 path="/home"
                 element={<PageContainer>Home Page (Protected)</PageContainer>}
+              />
+              <Route
+                path="/upload"
+                element={
+                  <PageContainer>
+                    <UploadPage />
+                  </PageContainer>
+                }
               />
               <Route
                 path="/calendar"

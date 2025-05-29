@@ -12,7 +12,7 @@ interface AppHeaderProps {
 
 const AppHeader: React.FC<AppHeaderProps> = ({ toggleTheme, themeMode }) => {
   const { user, isLoading } = useAuth();
-  const title = "Equip Endurance"!;
+  const title = "Equipped Endurance"!;
 
   if (isLoading) {
     return (
@@ -39,8 +39,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toggleTheme, themeMode }) => {
         {user ? (
           <>
             <StyledRouterLink to="/">Home</StyledRouterLink>
+            <StyledRouterLink to="/fit-files">Fit Files</StyledRouterLink>
             <StyledRouterLink to="/profile">Profile</StyledRouterLink>
             <StyledRouterLink to="/calendar">Calendar</StyledRouterLink>
+            <StyledRouterLink to="/upload">Upload</StyledRouterLink>
             <ThemeToggleButton
               onClick={toggleTheme}
               aria-label={`Switch to ${

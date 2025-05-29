@@ -7,7 +7,7 @@ import React, {
   type ReactNode,
 } from "react";
 import { MAX_WEEKS, WEEKS_TO_LOAD } from "../CalendarPage";
-import { workouts as defaultWorkouts, type Workout } from "../fakeData";
+import { workouts as defaultWorkouts, type Workout } from "./fakeData";
 
 // Define the context type
 type CalendarContextType = {

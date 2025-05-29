@@ -1,7 +1,9 @@
 import { format, isSameDay, isToday } from "date-fns";
 import styled from "styled-components";
 import { useCalendarContext } from "../../context/CalendarContext";
-import type { Workout } from "../../fakeData";
+import type { Workout } from "../../context/fakeData";
+import DayText from "../../shared-styles/DayText";
+import { WorkoutDuration } from "../../../../components/DisplayStyles";
 
 type DayCellProps = {
   day: Date;
@@ -10,7 +12,6 @@ type DayCellProps = {
 
 const DayCalendarCell = ({ isCurrentWeek, day }: DayCellProps) => {
   const {
-    // handleWorkoutClick,
     handleDayClick,
     handleWorkoutDayClick,
     workouts,
@@ -47,8 +48,13 @@ const DayCalendarCell = ({ isCurrentWeek, day }: DayCellProps) => {
                   handleWorkoutDayClick(day, workout);
                 }}
               >
-                <WorkoutName>{workout.name}</WorkoutName>
-                <WorkoutDuration>{workout.duration ?? ""}</WorkoutDuration>
+                <DayText
+                  size={16}
+                  workoutType={workout.type}
+                  text={workout.name}
+                  showIcon
+                />
+                <WorkoutDuration duration={workout.duration ?? ""} />
               </WorkoutContainer>
             );
           })}
@@ -91,27 +97,6 @@ const WorkoutContainer = styled.div<{ isSelected?: boolean }>`
   }
   background-color: ${({ isSelected, theme }) =>
     isSelected ? `${theme.colors.primary}20` : `${theme.colors.surface}30`};
-`;
-
-const WorkoutName = styled.div`
-  font-size: 0.8rem;
-  color: ${({ theme }) => theme.colors.text};
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  max-width: 70%;
-  font-weight: 500;
-`;
-
-const WorkoutDuration = styled.div`
-  font-size: 0.7rem;
-  color: ${({ theme }) => theme.colors.text}cc;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  text-align: right;
-  max-width: 30%;
-  padding-left: 4px;
 `;
 
 const EventsContainer = styled.div`
