@@ -101,7 +101,7 @@ export const ActivityDetailsContextProvider: React.FC<
           setActivities(response.data);
           // Console log the activity metadata for each activity
           response.data.forEach((activity, index) => {
-            console.log(`Activity ${index + 1} metadata:`, {
+            console.log(`xxx Activity ${index + 1} metadata:`, {
               id: activity.id,
               sport: activity.sport,
               timestamp: activity.activity_timestamp,

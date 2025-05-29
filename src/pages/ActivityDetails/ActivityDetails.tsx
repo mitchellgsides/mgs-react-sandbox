@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { useParams, Link } from "react-router-dom";
 import { DateTime } from "luxon";
 import { useActivityDetailsContext } from "./context/ActivityDetailsContext";
+import HighchartsGraph from "./components/HighchartsGraph";
 
 const ActivityDetails = () => {
   const { activityId } = useParams<{ activityId: string }>();
@@ -59,88 +60,95 @@ const ActivityDetails = () => {
   };
 
   return (
-    <Container>
-      <BackLink to="/activities">← Back to Activities</BackLink>
-      <Title>Activity Details</Title>
+    <>
+      <Container>
+        <BackLink to="/activities">← Back to Activities</BackLink>
+        <Title>Activity Details</Title>
 
-      <ActivityCard>
-        <ActivityHeader>
-          <ActivityDate>
-            {formatDate(selectedActivity.activity_timestamp)}
-          </ActivityDate>
-          {selectedActivity.sport && (
-            <ActivitySport>{selectedActivity.sport}</ActivitySport>
-          )}
-        </ActivityHeader>
+        <ActivityCard>
+          <ActivityHeader>
+            <ActivityDate>
+              {formatDate(selectedActivity.activity_timestamp)}
+            </ActivityDate>
+            {selectedActivity.sport && (
+              <ActivitySport>{selectedActivity.sport}</ActivitySport>
+            )}
+          </ActivityHeader>
 
-        <StatsGrid>
-          {selectedActivity.total_distance && (
-            <StatItem>
-              <StatLabel>Distance</StatLabel>
-              <StatValue>
-                {(selectedActivity.total_distance / 1000).toFixed(2)} km
-              </StatValue>
-            </StatItem>
-          )}
+          <StatsGrid>
+            {selectedActivity.total_distance && (
+              <StatItem>
+                <StatLabel>Distance</StatLabel>
+                <StatValue>
+                  {(selectedActivity.total_distance / 1000).toFixed(2)} km
+                </StatValue>
+              </StatItem>
+            )}
 
-          {selectedActivity.total_timer_time && (
-            <StatItem>
-              <StatLabel>Duration</StatLabel>
-              <StatValue>
-                {Math.round(selectedActivity.total_timer_time / 60)} min
-              </StatValue>
-            </StatItem>
-          )}
+            {selectedActivity.total_timer_time && (
+              <StatItem>
+                <StatLabel>Duration</StatLabel>
+                <StatValue>
+                  {Math.round(selectedActivity.total_timer_time / 60)} min
+                </StatValue>
+              </StatItem>
+            )}
 
-          {selectedActivity.avg_speed && (
-            <StatItem>
-              <StatLabel>Avg Speed</StatLabel>
-              <StatValue>
-                {(selectedActivity.avg_speed * 3.6).toFixed(1)} km/h
-              </StatValue>
-            </StatItem>
-          )}
+            {selectedActivity.avg_speed && (
+              <StatItem>
+                <StatLabel>Avg Speed</StatLabel>
+                <StatValue>
+                  {(selectedActivity.avg_speed * 3.6).toFixed(1)} km/h
+                </StatValue>
+              </StatItem>
+            )}
 
-          {selectedActivity.max_speed && (
-            <StatItem>
-              <StatLabel>Max Speed</StatLabel>
-              <StatValue>
-                {(selectedActivity.max_speed * 3.6).toFixed(1)} km/h
-              </StatValue>
-            </StatItem>
-          )}
+            {selectedActivity.max_speed && (
+              <StatItem>
+                <StatLabel>Max Speed</StatLabel>
+                <StatValue>
+                  {(selectedActivity.max_speed * 3.6).toFixed(1)} km/h
+                </StatValue>
+              </StatItem>
+            )}
 
-          {selectedActivity.avg_power && (
-            <StatItem>
-              <StatLabel>Avg Power</StatLabel>
-              <StatValue>{selectedActivity.avg_power} W</StatValue>
-            </StatItem>
-          )}
+            {selectedActivity.avg_power && (
+              <StatItem>
+                <StatLabel>Avg Power</StatLabel>
+                <StatValue>{selectedActivity.avg_power} W</StatValue>
+              </StatItem>
+            )}
 
-          {selectedActivity.max_power && (
-            <StatItem>
-              <StatLabel>Max Power</StatLabel>
-              <StatValue>{selectedActivity.max_power} W</StatValue>
-            </StatItem>
-          )}
-        </StatsGrid>
+            {selectedActivity.max_power && (
+              <StatItem>
+                <StatLabel>Max Power</StatLabel>
+                <StatValue>{selectedActivity.max_power} W</StatValue>
+              </StatItem>
+            )}
+          </StatsGrid>
 
-        <RecordsSection>
-          <RecordsTitle>Activity Records</RecordsTitle>
-          {records ? (
-            <RecordsInfo>
-              {records.length > 0 ? (
-                <RecordsCount>{records.length} data points loaded</RecordsCount>
-              ) : (
-                <RecordsCount>No records found for this activity</RecordsCount>
-              )}
-            </RecordsInfo>
-          ) : (
-            <LoadingText>Loading activity records...</LoadingText>
-          )}
-        </RecordsSection>
-      </ActivityCard>
-    </Container>
+          <RecordsSection>
+            <RecordsTitle>Activity Records</RecordsTitle>
+            {records ? (
+              <RecordsInfo>
+                {records.length > 0 ? (
+                  <RecordsCount>
+                    {records.length} data points loaded
+                  </RecordsCount>
+                ) : (
+                  <RecordsCount>
+                    No records found for this activity
+                  </RecordsCount>
+                )}
+              </RecordsInfo>
+            ) : (
+              <LoadingText>Loading activity records...</LoadingText>
+            )}
+          </RecordsSection>
+        </ActivityCard>
+      </Container>
+      <HighchartsGraph />
+    </>
   );
 };
 
@@ -149,7 +157,7 @@ export default ActivityDetails;
 // Styled Components
 const Container = styled.div`
   padding: 20px;
-  max-width: 1000px;
+  width: 1000px;
   margin: 0 auto;
 `;
 
