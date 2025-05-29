@@ -14,7 +14,7 @@ import CalendarPage from "./pages/Calendar/CalendarPage";
 import AppHeader from "./components/AppHeader";
 import { lightTheme, darkTheme } from "./theme/theme";
 import GlobalStyle from "./theme/GlobalStyle";
-import { useAuth } from "./contexts/Auth/authContextDef";
+import { useAuthContext } from "./contexts/Auth/useAuthContext";
 import { CalendarContextProvider } from "./pages/Calendar/context/CalendarContext";
 import { UploadPage } from "./pages/UploadPage";
 import ActivityDetails from "./pages/ActivityDetails/ActivityDetails";
@@ -35,7 +35,7 @@ const AuthenticatedLayout: React.FC = () => {
 const ProtectedRoute: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useAuthContext();
 
   if (isLoading) {
     return <LoadingContainer>Loading application...</LoadingContainer>;
@@ -56,7 +56,7 @@ function App() {
     profile,
     isLoading: isAuthLoading,
     updateUserProfile,
-  } = useAuth();
+  } = useAuthContext();
   const [themeMode, setThemeMode] = useState<ThemeMode>(
     profile?.theme ?? "dark"
   );

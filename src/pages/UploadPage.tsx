@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { Upload, File, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { uploadFitFile } from "../supabase/utils/fitFileUpload.js";
-import { useAuth } from "../contexts/Auth/authContextDef";
+import { useAuthContext } from "../contexts/Auth/useAuthContext";
 
 export const UploadPage = () => {
   return <FitFileUploader />;
@@ -12,7 +12,7 @@ const FitFileUploader = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState<UploadResultItem[]>([]);
 
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const userId = user?.id || "mgs-admin-user";
 
   interface FileUploadResult {

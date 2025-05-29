@@ -8,9 +8,9 @@ import type {
   UserAttributes, // Import UserAttributes
 } from "@supabase/supabase-js";
 import { supabaseAuth, type Profile } from "../../supabase/supabase.auth";
-import { AuthContext } from "./authContextDef";
+import { AuthContext } from "./useAuthContext";
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [session, setSession] = useState<Session | null>(null);

@@ -2,6 +2,14 @@ import { createContext, useContext } from "react";
 import type { Session, User, UserAttributes } from "@supabase/supabase-js";
 import type { Profile } from "../../supabase/supabase.auth"; // Assuming Profile type is here
 
+export const useAuthContext = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthContextProvider");
+  }
+  return context;
+};
+
 // Interface for the auth context value
 export interface AuthContextType {
   session: Session | null;
@@ -39,29 +47,13 @@ export interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(
   undefined
 );
-// Previous default:
-// export const AuthContext = createContext<AuthContextType>({
-//     session: null,
-//     user: null,
-//     isLoading: true, // Default isLoading to true as initial state is usually loading
-//     error: null,
-//     signInWithPassword: async () => {},
-//     signInWithOAuth: async () => {},
-//     signUp: async () => {},
-//     signOut: async () => {},
-//     resetPassword: async () => {},
-//     updatePassword: async () => {},
-//     updateUserProfile: async () => {},
-//     updateUserAuthMetadata: async () => {},
-// });
-
 // Custom hook to use the auth context
 export const useAuth = (): AuthContextType => {
   // Return type matches interface
   const context = useContext(AuthContext);
   if (context === undefined) {
     // Check for undefined
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error("useAuth must be used within an AuthContextProvider");
   }
   return context;
 };

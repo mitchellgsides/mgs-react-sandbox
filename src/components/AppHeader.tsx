@@ -2,7 +2,7 @@ import React from "react";
 import { Link as RouterLink } from "react-router-dom";
 import styled from "styled-components";
 import { BiMoon, BiSun } from "react-icons/bi";
-import { useAuth } from "../contexts/Auth/authContextDef";
+import { useAuthContext } from "../contexts/Auth/useAuthContext";
 import { PiGraph } from "react-icons/pi";
 
 interface AppHeaderProps {
@@ -11,7 +11,7 @@ interface AppHeaderProps {
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({ toggleTheme, themeMode }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useAuthContext();
   const title = "Equipped Endurance"!;
 
   if (isLoading) {

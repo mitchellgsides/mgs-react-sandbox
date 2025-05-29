@@ -1,20 +1,23 @@
-import { useMemo, useState, useCallback } from "react";
-import Highcharts from "highcharts";
+import { useCallback, useMemo, useState } from "react";
+import Highcharts from "highcharts/highstock";
 import HighchartsReact from "highcharts-react-official";
 import styled from "styled-components";
 import { useActivityDetailsContext } from "../context/useActivityDetailsContext";
 
-const HighchartsGraph = () => {
+const HighstockGraph = () => {
   const { records, selectedActivity } = useActivityDetailsContext();
   const [zoomInfo, setZoomInfo] = useState<{
     start: string;
     end: string;
   } | null>(null);
-  const [smoothingSeconds, setSmoothingSeconds] = useState<number>(1);
+  const [groupingInterval, setGroupingInterval] = useState<number>(1);
 
-  console.log("xxx zoomInfo:", zoomInfo);
-  console.log("xxx Component rendered with records:", records?.length || 0);
-  console.log("xxx Smoothing seconds:", smoothingSeconds);
+  console.log("HighstockGraph - zoomInfo:", zoomInfo);
+  console.log(
+    "HighstockGraph - Component rendered with records:",
+    records?.length || 0
+  );
+  console.log("HighstockGraph - Grouping interval:", groupingInterval);
 
   // Helper function to format time for zoom summary - wrapped in useCallback
   const formatTime = useCallback((milliseconds: number) => {
@@ -30,51 +33,13 @@ const HighchartsGraph = () => {
     }
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }, []);
-
-  // Smoothing function - applies moving average over specified time window
-  const applySmoothingToSeries = (
-    data: [number, number][],
-    windowSeconds: number
-  ) => {
-    if (windowSeconds <= 1 || data.length === 0) {
-      return data; // No smoothing needed
-    }
-
-    const windowMs = windowSeconds * 1000;
-    const smoothedData: [number, number][] = [];
-
-    for (let i = 0; i < data.length; i++) {
-      const currentTime = data[i][0];
-      const windowStart = currentTime - windowMs / 2;
-      const windowEnd = currentTime + windowMs / 2;
-
-      // Find all points within the smoothing window
-      const windowPoints = data.filter(
-        (point) => point[0] >= windowStart && point[0] <= windowEnd
-      );
-
-      if (windowPoints.length > 0) {
-        // Calculate average value for the window
-        const averageValue =
-          windowPoints.reduce((sum, point) => sum + point[1], 0) /
-          windowPoints.length;
-        smoothedData.push([currentTime, averageValue]);
-      } else {
-        // If no points in window, use original value
-        smoothedData.push(data[i]);
-      }
-    }
-
-    return smoothedData;
-  };
-
   const chartOptions = useMemo(() => {
     if (!records || records.length === 0) {
       return null;
     }
 
     // Process data for different series
-    const processedData = records.map((record, index) => ({
+    const processedData = records.map((record) => ({
       time: record.timer_time, // Using timer_time as x-axis (active time in seconds)
       timeMs: record.timer_time * 1000, // Convert to milliseconds for Highcharts
       heartRate: record.heart_rate || null,
@@ -83,56 +48,32 @@ const HighchartsGraph = () => {
       cadence: record.cadence || null,
       distance: record.distance ? record.distance : null,
       altitude: record.altitude || null,
-      elapsedTime:
-        index *
-        (records.length > 1
-          ? (records[records.length - 1].timer_time - records[0].timer_time) /
-            (records.length - 1)
-          : 1),
     }));
 
-    // Create series data arrays
-    const heartRateData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.heartRate !== null)
-        .map((d) => [d.timeMs, d.heartRate!]),
-      smoothingSeconds
-    );
+    // Create series data arrays (no custom smoothing - let Highstock handle it)
+    const heartRateData = processedData
+      .filter((d) => d.heartRate !== null)
+      .map((d) => [d.timeMs, d.heartRate!]);
 
-    const powerData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.power !== null)
-        .map((d) => [d.timeMs, d.power!]),
-      smoothingSeconds
-    );
+    const powerData = processedData
+      .filter((d) => d.power !== null)
+      .map((d) => [d.timeMs, d.power!]);
 
-    const speedData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.speed !== null)
-        .map((d) => [d.timeMs, d.speed!]),
-      smoothingSeconds
-    );
+    const speedData = processedData
+      .filter((d) => d.speed !== null)
+      .map((d) => [d.timeMs, d.speed!]);
 
-    const cadenceData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.cadence !== null)
-        .map((d) => [d.timeMs, d.cadence!]),
-      smoothingSeconds
-    );
+    const cadenceData = processedData
+      .filter((d) => d.cadence !== null)
+      .map((d) => [d.timeMs, d.cadence!]);
 
-    const distanceData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.distance !== null)
-        .map((d) => [d.timeMs, d.distance!]),
-      smoothingSeconds
-    );
+    const distanceData = processedData
+      .filter((d) => d.distance !== null)
+      .map((d) => [d.timeMs, d.distance!]);
 
-    const altitudeData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.altitude !== null)
-        .map((d) => [d.timeMs, d.altitude!]),
-      smoothingSeconds
-    );
+    const altitudeData = processedData
+      .filter((d) => d.altitude !== null)
+      .map((d) => [d.timeMs, d.altitude!]);
 
     // HasData functions
     const hasHeartRateData = heartRateData.length > 0;
@@ -238,6 +179,19 @@ const HighchartsGraph = () => {
       });
     }
 
+    // Configure data grouping based on selected interval
+    const dataGroupingConfig = {
+      enabled: groupingInterval > 1,
+      approximation: "average",
+      groupPixelWidth: 2,
+      units: [["second", [1, 5, 10, 30, 60]]],
+      forced: groupingInterval > 1,
+      ...(groupingInterval > 1 && {
+        groupAll: true,
+        units: [["second", [groupingInterval]]],
+      }),
+    };
+
     return {
       chart: {
         type: "line",
@@ -257,42 +211,49 @@ const HighchartsGraph = () => {
             x: -10,
             y: 10,
           },
+          theme: {
+            fill: "#007bff",
+            stroke: "#007bff",
+            r: 4,
+            style: {
+              color: "#ffffff",
+              fontWeight: "bold",
+              fontSize: "12px",
+            },
+            states: {
+              hover: {
+                fill: "#0056b3",
+                stroke: "#0056b3",
+              },
+            },
+          },
         },
         events: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          click: function (this: any, event: any) {
-            console.log("Chart clicked:", event);
-          },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           selection: function (this: any, event: any) {
-            console.log("Selection event triggered:", event);
+            console.log("Highstock selection event triggered:", event);
             if (event.xAxis && event.xAxis[0]) {
-              console.log(
-                "xAxis min:",
-                event.xAxis[0].min,
-                "max:",
-                event.xAxis[0].max
-              );
               const start = formatTime(event.xAxis[0].min);
               const end = formatTime(event.xAxis[0].max);
-              console.log("Formatted times - start:", start, "end:", end);
               setZoomInfo({ start, end });
-            } else {
-              console.log("No xAxis data in selection event");
             }
             return true; // Allow the zoom
           },
         },
       },
       title: {
-        text: `Activity Data - ${selectedActivity?.sport || "Unknown Sport"}`,
+        text: `Activity Data - ${
+          selectedActivity?.sport || "Unknown Sport"
+        } (Highstock)`,
         style: {
           fontSize: "18px",
           fontWeight: "bold",
         },
       },
       subtitle: {
-        text: `Drag to zoom in on time range • Data smoothing: ${smoothingSeconds}s`,
+        text: `Drag to zoom in on time range • Native Highstock smoothing: ${
+          groupingInterval === 1 ? "disabled" : `${groupingInterval}s`
+        }`,
       },
       xAxis: {
         type: "datetime",
@@ -308,34 +269,18 @@ const HighchartsGraph = () => {
         events: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           afterSetExtremes: function (this: any, event: any) {
-            console.log("afterSetExtremes event triggered:", event);
-            console.log(
-              "Event details - trigger:",
-              event.trigger,
-              "min:",
-              event.min,
-              "max:",
-              event.max
-            );
-            console.log(
-              "Axis details - dataMin:",
-              this.dataMin,
-              "dataMax:",
-              this.dataMax
-            );
+            console.log("Highstock afterSetExtremes event triggered:", event);
 
             if (event.min !== undefined && event.max !== undefined) {
-              // Always set zoom info when extremes change, unless it's the initial load
+              // Set zoom info when extremes change
               if (event.trigger && event.trigger !== "updatedData") {
                 const start = formatTime(event.min);
                 const end = formatTime(event.max);
-                console.log("Setting zoom info - start:", start, "end:", end);
                 setZoomInfo({ start, end });
               }
 
               // Clear zoom info if back to full range
               if (event.min === this.dataMin && event.max === this.dataMax) {
-                console.log("Chart reset detected, clearing zoom info");
                 setZoomInfo(null);
               }
             }
@@ -356,6 +301,7 @@ const HighchartsGraph = () => {
                 fillColor: "rgba(127, 140, 141, 0.4)",
                 lineWidth: 1,
                 zIndex: 1,
+                dataGrouping: dataGroupingConfig,
                 tooltip: {
                   valueSuffix: " m",
                 },
@@ -379,6 +325,7 @@ const HighchartsGraph = () => {
                 color: "#e74c3c",
                 lineWidth: 1,
                 zIndex: 3,
+                dataGrouping: dataGroupingConfig,
                 tooltip: {
                   valueSuffix: " bpm",
                 },
@@ -402,6 +349,7 @@ const HighchartsGraph = () => {
                 color: "#f39c12",
                 lineWidth: 1,
                 zIndex: 3,
+                dataGrouping: dataGroupingConfig,
                 tooltip: {
                   valueSuffix: " W",
                 },
@@ -425,6 +373,7 @@ const HighchartsGraph = () => {
                 color: "#3498db",
                 lineWidth: 1,
                 zIndex: 3,
+                dataGrouping: dataGroupingConfig,
                 tooltip: {
                   valueSuffix: " km/h",
                 },
@@ -448,6 +397,7 @@ const HighchartsGraph = () => {
                 color: "#9b59b6",
                 lineWidth: 1,
                 zIndex: 3,
+                dataGrouping: dataGroupingConfig,
                 tooltip: {
                   valueSuffix: " rpm",
                 },
@@ -471,6 +421,7 @@ const HighchartsGraph = () => {
                 color: "#27ae60",
                 lineWidth: 1,
                 zIndex: 3,
+                dataGrouping: dataGroupingConfig,
                 tooltip: {
                   valueSuffix: " km",
                 },
@@ -584,11 +535,23 @@ const HighchartsGraph = () => {
           },
         },
       },
+      // Highstock-specific options
+      navigator: {
+        enabled: true,
+        height: 50,
+        margin: 20,
+      },
+      scrollbar: {
+        enabled: true,
+      },
+      rangeSelector: {
+        enabled: false, // Disable the date/range selector at the top
+      },
       credits: {
         enabled: false,
       },
     };
-  }, [records, selectedActivity, formatTime, setZoomInfo, smoothingSeconds]);
+  }, [records, selectedActivity, formatTime, setZoomInfo, groupingInterval]);
 
   if (!records || records.length === 0) {
     return (
@@ -611,17 +574,18 @@ const HighchartsGraph = () => {
       {/* Smoothing Controls */}
       <ControlsSection>
         <ControlGroup>
-          <ControlLabel>Data Smoothing:</ControlLabel>
+          <ControlLabel>Data Grouping (Highstock Native):</ControlLabel>
           <SmoothingSelect
-            value={smoothingSeconds}
+            value={groupingInterval}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setSmoothingSeconds(Number(e.target.value))
+              setGroupingInterval(Number(e.target.value))
             }
           >
-            <option value={1}>1 second (no smoothing)</option>
+            <option value={1}>Disabled</option>
             <option value={5}>5 seconds</option>
             <option value={10}>10 seconds</option>
             <option value={30}>30 seconds</option>
+            <option value={60}>1 minute</option>
           </SmoothingSelect>
         </ControlGroup>
 
@@ -670,7 +634,7 @@ const HighchartsGraph = () => {
         <HighchartsReact highcharts={Highcharts} options={chartOptions} />
       </ChartContainer>
       <DataSummary>
-        <SummaryTitle>Data Summary</SummaryTitle>
+        <SummaryTitle>Data Summary (Highstock)</SummaryTitle>
         <SummaryGrid>
           <SummaryItem>
             <SummaryLabel>Total Records:</SummaryLabel>
@@ -694,12 +658,16 @@ const HighchartsGraph = () => {
             <SummaryValue>{records.filter((r) => r.power).length}</SummaryValue>
           </SummaryItem>
           <SummaryItem>
-            <SummaryLabel>Smoothing Applied:</SummaryLabel>
+            <SummaryLabel>Native Grouping:</SummaryLabel>
             <SummaryValue>
-              {smoothingSeconds === 1
-                ? "None"
-                : `${smoothingSeconds}s moving average`}
+              {groupingInterval === 1
+                ? "Disabled"
+                : `${groupingInterval}s average`}
             </SummaryValue>
+          </SummaryItem>
+          <SummaryItem>
+            <SummaryLabel>Chart Type:</SummaryLabel>
+            <SummaryValue>Highstock with Navigator</SummaryValue>
           </SummaryItem>
         </SummaryGrid>
       </DataSummary>
@@ -707,9 +675,9 @@ const HighchartsGraph = () => {
   );
 };
 
-export default HighchartsGraph;
+export default HighstockGraph;
 
-// Styled Components
+// Styled Components (reused from HighchartsGraph)
 const Container = styled.div`
   padding: 20px;
   background: #fff;
@@ -722,7 +690,7 @@ const Container = styled.div`
 
 const ChartContainer = styled.div`
   width: 100%;
-  height: 600px;
+  height: 700px; /* Slightly taller to accommodate navigator */
   margin-bottom: 20px;
   overflow-x: auto;
 `;
@@ -809,8 +777,8 @@ const ControlsSection = styled.div`
   align-items: center;
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: #e3f2fd; /* Light blue background to distinguish from regular chart */
+  border: 1px solid #90caf9;
   border-radius: 6px;
   flex-wrap: wrap;
   gap: 12px;
@@ -825,22 +793,22 @@ const ControlGroup = styled.div`
 const ControlLabel = styled.label`
   font-size: 14px;
   font-weight: 500;
-  color: #495057;
+  color: #1565c0; /* Blue color to distinguish */
   margin-right: 8px;
 `;
 
 const SmoothingSelect = styled.select`
   padding: 6px 12px;
-  border: 1px solid #ced4da;
+  border: 1px solid #64b5f6;
   border-radius: 4px;
   background: white;
   font-size: 14px;
-  color: #495057;
+  color: #1565c0;
   cursor: pointer;
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: #1976d2;
+    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.25);
   }
 `;

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import { useAuth } from "../contexts/Auth/authContextDef";
+import { useAuthContext } from "../contexts/Auth/useAuthContext";
 import { darkTheme } from "../theme/theme";
 import type { Profile } from "../supabase/supabase.auth";
 import Button from "../lib/components/Button";
@@ -68,7 +68,7 @@ const LoginPage: React.FC = () => {
     isLoading,
     error,
     user,
-  } = useAuth();
+  } = useAuthContext();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

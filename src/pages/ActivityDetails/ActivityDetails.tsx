@@ -2,8 +2,9 @@ import React from "react";
 import styled from "styled-components";
 import { useParams, Link } from "react-router-dom";
 import { DateTime } from "luxon";
-import { useActivityDetailsContext } from "./context/ActivityDetailsContext";
+import { useActivityDetailsContext } from "./context/useActivityDetailsContext";
 import HighchartsGraph from "./components/HighchartsGraph";
+import HighstockGraph from "./components/HighstockGraph";
 
 const ActivityDetails = () => {
   const { activityId } = useParams<{ activityId: string }>();
@@ -147,7 +148,16 @@ const ActivityDetails = () => {
           </RecordsSection>
         </ActivityCard>
       </Container>
-      <HighchartsGraph />
+      <ChartComparison>
+        <ChartSection>
+          <ChartTitle>Custom Smoothing (Original)</ChartTitle>
+          <HighchartsGraph />
+        </ChartSection>
+        <ChartSection>
+          <ChartTitle>Highstock Native DataGrouping</ChartTitle>
+          <HighstockGraph />
+        </ChartSection>
+      </ChartComparison>
     </>
   );
 };
@@ -270,4 +280,27 @@ const ErrorText = styled.div`
   border-radius: 4px;
   padding: 12px;
   margin: 12px 0;
+`;
+
+const ChartComparison = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 20px 0;
+`;
+
+const ChartSection = styled.div`
+  width: 1000px;
+`;
+
+const ChartTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 10px 20px;
+  padding: 10px 20px;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid #dee2e6;
+  border-bottom: none;
 `;

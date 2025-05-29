@@ -2,7 +2,7 @@
 import React, { useState, useCallback } from "react";
 import styled from "styled-components";
 import { uploadFitFile } from "../supabase/utils/fitFileUpload";
-import { useAuth } from "../contexts/Auth/useAuth";
+import { useAuthContext } from "../contexts/Auth/useAuthContext";
 
 // Styled Components
 const FitFileUploaderContainer = styled.div`
@@ -88,7 +88,7 @@ interface UploadProgress {
 }
 
 export const OptimizedFitFileUploader: React.FC = () => {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [result, setResult] = useState<UploadResult | null>(null);

@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import styled from "styled-components";
 import { DateTime } from "luxon";
 import { useNavigate } from "react-router-dom";
-import { useActivityDetailsContext } from "./context/ActivityDetailsContext";
+import { useActivityDetailsContext } from "./context/useActivityDetailsContext";
 import type { Activity } from "../../supabase/supabase.fitFiles";
 
 const ActivityListPage = () => {

@@ -1,12 +1,5 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from "react";
-import { useAuth } from "../../../contexts/Auth/authContextDef";
+import React, { useState, useEffect, useCallback } from "react";
+import { useAuthContext } from "../../../contexts/Auth/useAuthContext";
 import {
   getActivity,
   getUserActivities,
@@ -14,9 +7,13 @@ import {
   type GetActivitiesResponse,
 } from "../../../supabase/supabase.fitFiles";
 import { supabase } from "../../../supabase/supabase.client";
+import {
+  ActivityDetailsContext,
+  type ActivityDetailsProviderProps,
+} from "./useActivityDetailsContext";
 
 // ActivityRecord interface - move this here for shared use
-interface ActivityRecord {
+export interface ActivityRecord {
   activity_id: string;
   altitude: number;
   cadence: number;
@@ -40,7 +37,7 @@ interface ActivityRecord {
 }
 
 // Define the context type
-type ActivityDetailsContextType = {
+export type ActivityDetailsContextType = {
   // State
   activities: Activity[];
   loading: boolean;
@@ -54,19 +51,11 @@ type ActivityDetailsContextType = {
   clearError: () => void;
 };
 
-const ActivityDetailsContext = createContext<
-  ActivityDetailsContextType | undefined
->(undefined);
-
-type ActivityDetailsProviderProps = {
-  children: ReactNode;
-};
-
 // Provider component that will wrap components needing access to the activity details context
 export const ActivityDetailsContextProvider: React.FC<
   ActivityDetailsProviderProps
 > = ({ children }) => {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -236,19 +225,6 @@ export const ActivityDetailsContextProvider: React.FC<
       {children}
     </ActivityDetailsContext.Provider>
   );
-};
-
-// Custom hook for consuming the context
-export const useActivityDetailsContext = (): ActivityDetailsContextType => {
-  const context = useContext(ActivityDetailsContext);
-
-  if (context === undefined) {
-    throw new Error(
-      "useActivityDetailsContext must be used within an ActivityDetailsContextProvider"
-    );
-  }
-
-  return context;
 };
 
 export default ActivityDetailsContextProvider;

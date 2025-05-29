@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import { useAuth } from "../contexts/Auth/authContextDef";
+import { useAuthContext } from "../contexts/Auth/useAuthContext";
 import { darkTheme } from "../theme/theme"; // Adjust path as necessary
 import type { Profile } from "../supabase/supabase.auth"; // Assuming Profile type is defined here
 import SignOutButton from "../components/SignOut";
 
 const ProfilePage: React.FC = () => {
   const { user, profile, updateUserProfile, updatePassword, isLoading, error } =
-    useAuth(); // Get userProfile and new updateUserProfile
+    useAuthContext(); // Get userProfile and new updateUserProfile
 
   const [editableProfile, setEditableProfile] = useState<Partial<Profile>>({}); // Initialize with empty or fetched profile
   const [isEditingProfile, setIsEditingProfile] = useState(false);
