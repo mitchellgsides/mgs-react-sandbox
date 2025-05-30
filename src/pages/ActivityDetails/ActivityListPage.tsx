@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import styled from "styled-components";
 import { DateTime } from "luxon";
 import { useNavigate } from "react-router-dom";
@@ -7,8 +7,18 @@ import type { Activity } from "../../supabase/supabase.fitFiles";
 
 const ActivityListPage = () => {
   const navigate = useNavigate();
-  const { activities, loading, error, records, setSelectedActivity } =
-    useActivityDetailsContext();
+  const {
+    activities,
+    loading,
+    error,
+    records,
+    setSelectedActivity,
+    deleteActivityById,
+    deleting,
+  } = useActivityDetailsContext();
+
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   console.log("xxx fetched records:", records);
 
@@ -30,19 +40,72 @@ const ActivityListPage = () => {
     [setSelectedActivity, navigate]
   );
 
+  const handleDeleteClick = useCallback(
+    (e: React.MouseEvent, activityId: string) => {
+      e.stopPropagation(); // Prevent activity click
+      setConfirmDelete(activityId);
+      setDeleteError(null);
+    },
+    []
+  );
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!confirmDelete) return;
+
+    try {
+      const result = await deleteActivityById(confirmDelete);
+      if (result.success) {
+        setConfirmDelete(null);
+        setDeleteError(null);
+      } else {
+        setDeleteError(result.error || "Failed to delete activity");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      setDeleteError("An unexpected error occurred");
+    }
+  }, [confirmDelete, deleteActivityById]);
+
+  const handleCancelDelete = useCallback(() => {
+    setConfirmDelete(null);
+    setDeleteError(null);
+  }, []);
+
   const activityList = useMemo(() => {
     return activities.map((activity) => (
       <ActivityItem
         key={activity.id}
         onClick={() => handleActivityClick(activity)}
       >
-        <ActivityDate>{formatDate(activity.activity_timestamp)}</ActivityDate>
-        {activity.sport && (
-          <ActivitySport>Sport: {activity.sport}</ActivitySport>
-        )}
+        <ActivityContent>
+          <ActivityInfo>
+            <ActivityName>{activity.name || "Unnamed Activity"}</ActivityName>
+            <ActivityDate>
+              {formatDate(activity.activity_timestamp)}
+            </ActivityDate>
+            {activity.sport && (
+              <ActivitySport>Sport: {activity.sport}</ActivitySport>
+            )}
+          </ActivityInfo>
+          <ActivityActions>
+            <DeleteButton
+              onClick={(e) => handleDeleteClick(e, activity.id)}
+              disabled={deleting}
+              aria-label="Delete activity"
+            >
+              🗑️
+            </DeleteButton>
+          </ActivityActions>
+        </ActivityContent>
       </ActivityItem>
     ));
-  }, [activities, formatDate, handleActivityClick]);
+  }, [
+    activities,
+    formatDate,
+    handleActivityClick,
+    handleDeleteClick,
+    deleting,
+  ]);
 
   if (loading) {
     return (
@@ -66,10 +129,38 @@ const ActivityListPage = () => {
     <Container>
       <Title>Activities ({activities.length})</Title>
 
+      {deleteError && <ErrorText>{deleteError}</ErrorText>}
+
       {activities.length === 0 ? (
         <LoadingText>No activities found</LoadingText>
       ) : (
         <ActivityList>{activityList}</ActivityList>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {confirmDelete && (
+        <DialogOverlay>
+          <DialogContent>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogMessage>
+              Are you sure you want to delete this activity? This action cannot
+              be undone and will remove all associated data including laps,
+              records, and files.
+            </DialogMessage>
+            <DialogActions>
+              <DialogButton onClick={handleCancelDelete} variant="secondary">
+                Cancel
+              </DialogButton>
+              <DialogButton
+                onClick={handleConfirmDelete}
+                variant="danger"
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </DialogButton>
+            </DialogActions>
+          </DialogContent>
+        </DialogOverlay>
       )}
     </Container>
   );
@@ -141,4 +232,146 @@ const ErrorText = styled.div`
   border-radius: 4px;
   padding: 12px;
   margin: 12px 0;
+`;
+
+// New styled components for enhanced activity items
+const ActivityContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
+
+const ActivityInfo = styled.div`
+  flex: 1;
+`;
+
+const ActivityName = styled.div`
+  font-size: 18px;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text};
+  margin-bottom: 4px;
+`;
+
+const ActivityActions = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const DeleteButton = styled.button`
+  background: ${({ theme }) => theme.colors.danger};
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover:not(:disabled) {
+    background: ${({ theme }) => theme.colors.danger}dd;
+    transform: scale(1.05);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+// Dialog styled components
+const DialogOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const DialogContent = styled.div`
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const DialogTitle = styled.h3`
+  font-size: 20px;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text};
+  margin: 0 0 16px 0;
+`;
+
+const DialogMessage = styled.p`
+  font-size: 14px;
+  color: ${({ theme }) => theme.colors.text};
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+`;
+
+const DialogActions = styled.div`
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+`;
+
+interface DialogButtonProps {
+  variant?: "primary" | "secondary" | "danger";
+}
+
+const DialogButton = styled.button<DialogButtonProps>`
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  ${({ variant, theme }) => {
+    switch (variant) {
+      case "danger":
+        return `
+          background: ${theme.colors.danger};
+          color: white;
+          &:hover:not(:disabled) {
+            background: ${theme.colors.danger}dd;
+          }
+        `;
+      case "secondary":
+        return `
+          background: ${theme.colors.light};
+          color: ${theme.colors.text};
+          border: 1px solid ${theme.colors.border};
+          &:hover:not(:disabled) {
+            background: ${theme.colors.border};
+          }
+        `;
+      default:
+        return `
+          background: ${theme.colors.primary};
+          color: white;
+          &:hover:not(:disabled) {
+            background: ${theme.colors.primary}dd;
+          }
+        `;
+    }
+  }}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;

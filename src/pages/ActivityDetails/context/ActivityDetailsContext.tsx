@@ -3,8 +3,10 @@ import { useAuthContext } from "../../../contexts/Auth/useAuthContext";
 import {
   getActivity,
   getUserActivities,
+  deleteActivity,
   type Activity,
   type GetActivitiesResponse,
+  type DeleteActivityResponse,
 } from "../../../supabase/supabase.fitFiles";
 import { supabase } from "../../../supabase/supabase.client";
 import {
@@ -44,11 +46,15 @@ export type ActivityDetailsContextType = {
   error: string | null;
   records: ActivityRecord[] | null;
   selectedActivity: Activity | null;
+  deleting: boolean;
 
   // Actions
   setSelectedActivity: (activity: Activity | null) => void;
   refreshActivities: () => Promise<void>;
   clearError: () => void;
+  deleteActivityById: (
+    activityId: string
+  ) => Promise<{ success: boolean; error?: string }>;
 };
 
 // Provider component that will wrap components needing access to the activity details context
@@ -63,6 +69,7 @@ export const ActivityDetailsContextProvider: React.FC<
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
     null
   );
+  const [deleting, setDeleting] = useState(false);
 
   // Fetch activities effect
   useEffect(() => {
@@ -206,6 +213,51 @@ export const ActivityDetailsContextProvider: React.FC<
     setError(null);
   }, []);
 
+  const deleteActivityById = useCallback(
+    async (activityId: string) => {
+      if (!user?.id) {
+        return { success: false, error: "User not authenticated" };
+      }
+
+      try {
+        setDeleting(true);
+        setError(null);
+
+        const result: DeleteActivityResponse = await deleteActivity(
+          activityId,
+          user.id
+        );
+
+        if (result.success) {
+          // Remove the activity from local state
+          setActivities((prev) =>
+            prev.filter((activity) => activity.id !== activityId)
+          );
+
+          // Clear selected activity if it was the one being deleted
+          if (selectedActivity?.id === activityId) {
+            setSelectedActivity(null);
+            setRecords(null);
+          }
+
+          return { success: true };
+        } else {
+          setError(result.error || "Failed to delete activity");
+          return { success: false, error: result.error };
+        }
+      } catch (err) {
+        console.error("Error deleting activity:", err);
+        const errorMessage =
+          "An unexpected error occurred while deleting the activity";
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
+      } finally {
+        setDeleting(false);
+      }
+    },
+    [user?.id, selectedActivity?.id]
+  );
+
   const value: ActivityDetailsContextType = {
     // State
     activities,
@@ -213,11 +265,13 @@ export const ActivityDetailsContextProvider: React.FC<
     error,
     records,
     selectedActivity,
+    deleting,
 
     // Actions
     setSelectedActivity,
     refreshActivities,
     clearError,
+    deleteActivityById,
   };
 
   return (

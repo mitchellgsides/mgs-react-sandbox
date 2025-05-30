@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import styled, { ThemeProvider } from "styled-components";
@@ -16,12 +16,13 @@ const HighchartsGraph = () => {
   } | null>(null);
   const [smoothingSeconds, setSmoothingSeconds] = useState<number>(1);
 
+  // Reset state when activity changes
+  useEffect(() => {
+    setZoomInfo(null);
+  }, [selectedActivity?.id]);
+
   // const currentTheme = profile?.theme === "dark" ? darkTheme : lightTheme;
   const currentTheme = profile?.theme === "dark" ? darkTheme : lightTheme;
-
-  console.log("xxx zoomInfo:", zoomInfo);
-  console.log("xxx Component rendered with records:", records?.length || 0);
-  console.log("xxx Smoothing seconds:", smoothingSeconds);
 
   // Helper function to format time for zoom summary - wrapped in useCallback
   const formatTime = useCallback((milliseconds: number) => {

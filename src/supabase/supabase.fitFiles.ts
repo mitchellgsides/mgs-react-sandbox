@@ -25,6 +25,7 @@ export interface ActivityUploadResult {
 export interface Activity {
   id: string;
   user_id: string;
+  name?: string;
   sport?: string;
   activity_timestamp: string;
   total_distance?: number;
@@ -33,6 +34,8 @@ export interface Activity {
   max_speed?: number;
   avg_power?: number;
   max_power?: number;
+  avg_heart_rate?: number;
+  max_heart_rate?: number;
   created_at: string;
   updated_at: string;
 }
@@ -500,31 +503,103 @@ export const getActivityLaps = async (
 };
 
 export const deleteActivity = async (
-  activityId: string
+  activityId: string,
+  userId: string
 ): Promise<DeleteActivityResponse> => {
   try {
-    // Delete activity (cascades to laps and records)
-    const { error } = await supabase
-      .from("activities")
-      .delete()
-      .eq("id", activityId);
+    console.log(`Starting comprehensive delete for activity ${activityId}`);
 
-    if (error) {
+    // 1. First, get activity info to check ownership and get any file paths
+    const { data: activity, error: fetchError } = await supabase
+      .from("activities")
+      .select("user_id, created_at")
+      .eq("id", activityId)
+      .single();
+
+    if (fetchError) {
       return {
         success: false,
-        error: `Failed to delete activity: ${error.message}`,
+        error: `Activity not found: ${fetchError.message}`,
       };
     }
 
+    // Security check: ensure user owns this activity
+    if (activity.user_id !== userId) {
+      return {
+        success: false,
+        error: "Unauthorized: You can only delete your own activities",
+      };
+    }
+
+    // 2. Find any associated FIT files in storage
+    // FIT files are stored in pattern: userId/YYYY/MM/DD/timestamp_filename.fit
+    const activityDate = new Date(activity.created_at);
+    const year = activityDate.getFullYear();
+    const month = String(activityDate.getMonth() + 1).padStart(2, "0");
+    const day = String(activityDate.getDate()).padStart(2, "0");
+    const searchPath = `${userId}/${year}/${month}/${day}`;
+
+    console.log(`Searching for FIT files in path: ${searchPath}`);
+
+    // List files in the storage directory
+    const { data: files, error: listError } = await supabase.storage
+      .from("fit-files")
+      .list(searchPath);
+
+    if (listError) {
+      console.warn(
+        `Warning: Could not list files in storage: ${listError.message}`
+      );
+    }
+
+    // Delete associated FIT files (best effort - don't fail if no files found)
+    if (files && files.length > 0) {
+      console.log(`Found ${files.length} files in storage directory`);
+
+      // Create full paths for deletion
+      const filePaths = files.map((file) => `${searchPath}/${file.name}`);
+
+      const { error: storageError } = await supabase.storage
+        .from("fit-files")
+        .remove(filePaths);
+
+      if (storageError) {
+        console.warn("Storage deletion warning:", storageError);
+        // Continue with database deletion even if storage cleanup fails
+      } else {
+        console.log(
+          `Successfully deleted ${filePaths.length} files from storage`
+        );
+      }
+    } else {
+      console.log("No FIT files found in storage for this activity");
+    }
+
+    // 3. Delete from activities table (this will cascade to laps and records if FK constraints are set up)
+    const { error: deleteError } = await supabase
+      .from("activities")
+      .delete()
+      .eq("id", activityId)
+      .eq("user_id", userId); // Double-check ownership
+
+    if (deleteError) {
+      return {
+        success: false,
+        error: `Failed to delete activity from database: ${deleteError.message}`,
+      };
+    }
+
+    console.log(`Successfully deleted activity ${activityId}`);
+
     return {
       success: true,
-      message: "Activity deleted successfully",
+      message: "Activity and associated data deleted successfully",
     };
   } catch (error) {
     console.error("Delete activity error:", error);
     return {
       success: false,
-      error: "Failed to delete activity",
+      error: "Failed to delete activity: An unexpected error occurred",
     };
   }
 };
