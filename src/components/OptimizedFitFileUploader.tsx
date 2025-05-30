@@ -7,7 +7,9 @@ import { useAuthContext } from "../contexts/Auth/useAuthContext";
 // Styled Components
 const FitFileUploaderContainer = styled.div`
   padding: 20px;
-  border: 1px solid #ddd;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background-color: ${({ theme }) => theme.colors.surface};
+  color: ${({ theme }) => theme.colors.text};
   border-radius: 8px;
   max-width: 500px;
 `;
@@ -15,9 +17,16 @@ const FitFileUploaderContainer = styled.div`
 const FileInput = styled.input`
   margin: 10px 0;
   padding: 10px;
-  border: 2px dashed #ccc;
+  border: 2px dashed ${({ theme }) => theme.colors.border};
   border-radius: 4px;
   width: 100%;
+  background-color: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.text};
+
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
 `;
 
 const UploadProgress = styled.div`
@@ -27,14 +36,15 @@ const UploadProgress = styled.div`
 const ProgressBar = styled.div`
   width: 100%;
   height: 20px;
-  background-color: #f0f0f0;
+  background-color: ${({ theme }) => theme.colors.light};
+  border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: 10px;
   overflow: hidden;
 `;
 
 const ProgressFill = styled.div<{ progress: number }>`
   height: 100%;
-  background-color: #4caf50;
+  background-color: ${({ theme }) => theme.colors.success};
   transition: width 0.3s ease;
   width: ${(props) => props.progress}%;
 `;
@@ -42,16 +52,23 @@ const ProgressFill = styled.div<{ progress: number }>`
 const ProgressMessage = styled.p`
   margin: 10px 0;
   font-size: 14px;
-  color: #666;
+  color: ${({ theme }) => theme.colors.text};
+  opacity: 0.8;
 `;
 
 const UploadResult = styled.div<{ isSuccess: boolean }>`
   margin: 20px 0;
   padding: 15px;
   border-radius: 4px;
-  background-color: ${(props) => (props.isSuccess ? "#d4edda" : "#f8d7da")};
-  border: 1px solid ${(props) => (props.isSuccess ? "#c3e6cb" : "#f5c6cb")};
-  color: ${(props) => (props.isSuccess ? "#155724" : "#721c24")};
+  background-color: ${(props) =>
+    props.isSuccess
+      ? `${props.theme.colors.success}22`
+      : `${props.theme.colors.danger}22`};
+  border: 1px solid
+    ${(props) =>
+      props.isSuccess ? props.theme.colors.success : props.theme.colors.danger};
+  color: ${(props) =>
+    props.isSuccess ? props.theme.colors.success : props.theme.colors.danger};
 
   h4 {
     margin: 0 0 10px 0;

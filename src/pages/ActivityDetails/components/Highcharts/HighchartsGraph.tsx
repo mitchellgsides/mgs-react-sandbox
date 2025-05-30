@@ -1,16 +1,22 @@
 import { useMemo, useState, useCallback } from "react";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
-import styled from "styled-components";
-import { useActivityDetailsContext } from "../context/useActivityDetailsContext";
+import styled, { ThemeProvider } from "styled-components";
+import { useActivityDetailsContext } from "../../context/useActivityDetailsContext";
+import { darkTheme, lightTheme } from "../../../../theme/theme";
+import { useAuthContext } from "../../../../contexts/Auth/useAuthContext";
 
 const HighchartsGraph = () => {
   const { records, selectedActivity } = useActivityDetailsContext();
+  const { profile } = useAuthContext();
   const [zoomInfo, setZoomInfo] = useState<{
     start: string;
     end: string;
   } | null>(null);
   const [smoothingSeconds, setSmoothingSeconds] = useState<number>(1);
+
+  // const currentTheme = profile?.theme === "dark" ? darkTheme : lightTheme;
+  const currentTheme = profile?.theme === "dark" ? darkTheme : lightTheme;
 
   console.log("xxx zoomInfo:", zoomInfo);
   console.log("xxx Component rendered with records:", records?.length || 0);
@@ -151,10 +157,10 @@ const HighchartsGraph = () => {
         id: "power",
         title: {
           text: "Power (W)",
-          style: { color: "#f39c12" },
+          style: { color: currentTheme.colors.warning },
         },
         labels: {
-          style: { color: "#f39c12" },
+          style: { color: currentTheme.colors.warning },
         },
         opposite: true,
         offset: offsetCount > 0 ? offsetCount * 50 : 0,
@@ -167,10 +173,10 @@ const HighchartsGraph = () => {
         id: "heartrate",
         title: {
           text: "Heart Rate (bpm)",
-          style: { color: "#e74c3c" },
+          style: { color: currentTheme.colors.danger },
         },
         labels: {
-          style: { color: "#e74c3c" },
+          style: { color: currentTheme.colors.danger },
         },
         opposite: false,
         offset: offsetCount > 1 ? Math.floor(offsetCount / 2) * 50 : 0,
@@ -182,10 +188,10 @@ const HighchartsGraph = () => {
         id: "speed",
         title: {
           text: "Speed (km/h)",
-          style: { color: "#3498db" },
+          style: { color: currentTheme.colors.info },
         },
         labels: {
-          style: { color: "#3498db" },
+          style: { color: currentTheme.colors.info },
         },
         opposite: false,
         offset: offsetCount > 1 ? Math.floor(offsetCount / 2) * 50 : 0,
@@ -197,10 +203,10 @@ const HighchartsGraph = () => {
         id: "cadence",
         title: {
           text: "Cadence (rpm)",
-          style: { color: "#9b59b6" },
+          style: { color: currentTheme.colors.secondary },
         },
         labels: {
-          style: { color: "#9b59b6" },
+          style: { color: currentTheme.colors.secondary },
         },
         opposite: true,
         offset: offsetCount > 0 ? offsetCount * 50 : 0,
@@ -213,13 +219,14 @@ const HighchartsGraph = () => {
         id: "distance",
         title: {
           text: "Distance (km)",
-          style: { color: "#27ae60" },
+          style: { color: currentTheme.colors.success },
         },
         labels: {
-          style: { color: "#27ae60" },
+          style: { color: currentTheme.colors.success },
         },
         opposite: false,
         offset: offsetCount > 1 ? Math.floor(offsetCount / 2) * 50 : 0,
+        enabled: false,
       });
     }
 
@@ -228,10 +235,10 @@ const HighchartsGraph = () => {
         id: "altitude",
         title: {
           text: "Altitude (m)",
-          style: { color: "#7f8c8d" },
+          style: { color: currentTheme.colors.light },
         },
         labels: {
-          style: { color: "#7f8c8d" },
+          style: { color: currentTheme.colors.light },
         },
         opposite: true,
         offset: offsetCount > 0 ? offsetCount * 50 : 0,
@@ -241,9 +248,9 @@ const HighchartsGraph = () => {
     return {
       chart: {
         type: "line",
-        height: 600,
+        height: 400,
         zoomType: "x",
-        backgroundColor: "#ffffff",
+        backgroundColor: currentTheme.colors.surface,
         marginLeft: 60,
         marginRight: 60,
         plotBackgroundColor: null,
@@ -289,20 +296,30 @@ const HighchartsGraph = () => {
         style: {
           fontSize: "18px",
           fontWeight: "bold",
+          color: currentTheme.colors.text,
         },
       },
       subtitle: {
         text: `Drag to zoom in on time range • Data smoothing: ${smoothingSeconds}s`,
+        style: {
+          color: currentTheme.colors.text,
+        },
       },
       xAxis: {
         type: "datetime",
         title: {
           text: "Active Time",
+          style: {
+            color: currentTheme.colors.text,
+          },
         },
         labels: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           formatter: function (this: any) {
             return formatTime(this.value);
+          },
+          style: {
+            color: currentTheme.colors.text,
           },
         },
         events: {
@@ -361,8 +378,7 @@ const HighchartsGraph = () => {
                 },
                 states: {
                   hover: {
-                    lineWidthPlus: 1,
-                    brightness: 0.1,
+                    enabled: false,
                   },
                 },
               },
@@ -384,8 +400,7 @@ const HighchartsGraph = () => {
                 },
                 states: {
                   hover: {
-                    lineWidthPlus: 1,
-                    brightness: 0.1,
+                    enabled: false,
                   },
                 },
               },
@@ -407,8 +422,7 @@ const HighchartsGraph = () => {
                 },
                 states: {
                   hover: {
-                    lineWidthPlus: 1,
-                    brightness: 0.1,
+                    enabled: false,
                   },
                 },
               },
@@ -430,8 +444,7 @@ const HighchartsGraph = () => {
                 },
                 states: {
                   hover: {
-                    lineWidthPlus: 1,
-                    brightness: 0.1,
+                    enabled: false,
                   },
                 },
               },
@@ -453,8 +466,7 @@ const HighchartsGraph = () => {
                 },
                 states: {
                   hover: {
-                    lineWidthPlus: 1,
-                    brightness: 0.1,
+                    enabled: false,
                   },
                 },
               },
@@ -476,8 +488,7 @@ const HighchartsGraph = () => {
                 },
                 states: {
                   hover: {
-                    lineWidthPlus: 1,
-                    brightness: 0.1,
+                    enabled: false,
                   },
                 },
               },
@@ -494,11 +505,14 @@ const HighchartsGraph = () => {
           },
           false,
         ],
-        backgroundColor: "rgba(255, 255, 255, 0.95)",
-        borderColor: "#cccccc",
+        backgroundColor: currentTheme.colors.surface,
+        borderColor: currentTheme.colors.border,
         borderRadius: 4,
         shadow: true,
         useHTML: false,
+        style: {
+          color: currentTheme.colors.text,
+        },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: function (this: any) {
           const timeStr = formatTime(this.x);
@@ -517,13 +531,18 @@ const HighchartsGraph = () => {
       },
       legend: {
         enabled: true,
+        floating: false,
         layout: "horizontal",
-        align: "center",
+        align: "right",
         verticalAlign: "bottom",
       },
       plotOptions: {
         series: {
           animation: false,
+          dataGrouping: {
+            groupPixelWidth: 1,
+            enabled: true,
+          },
           marker: {
             enabled: false,
             states: {
@@ -536,50 +555,26 @@ const HighchartsGraph = () => {
           },
           states: {
             hover: {
-              lineWidthPlus: 1,
-              halo: {
-                size: 8,
-                opacity: 0.25,
-              },
+              enabled: false,
             },
             inactive: {
               opacity: 1,
             },
           },
-          events: {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            mouseOver: function (this: any) {
-              // Highlight all series when hovering over any series
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              this.chart.series.forEach((series: any) => {
-                if (series !== this) {
-                  series.setState("hover");
-                }
-              });
-            },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            mouseOut: function (this: any) {
-              // Remove hover state from all series
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              this.chart.series.forEach((series: any) => {
-                series.setState("");
-              });
-            },
-          },
         },
         line: {
-          lineWidth: 1, // Thinner lines
+          lineWidth: 1,
           states: {
             hover: {
-              lineWidthPlus: 1,
+              enabled: false,
             },
           },
         },
         area: {
-          lineWidth: 1, // Thinner lines
+          lineWidth: 1,
           states: {
             hover: {
-              lineWidthPlus: 1,
+              enabled: false,
             },
           },
         },
@@ -588,122 +583,116 @@ const HighchartsGraph = () => {
         enabled: false,
       },
     };
-  }, [records, selectedActivity, formatTime, setZoomInfo, smoothingSeconds]);
+  }, [
+    records,
+    selectedActivity,
+    formatTime,
+    setZoomInfo,
+    smoothingSeconds,
+    currentTheme,
+  ]);
 
   if (!records || records.length === 0) {
     return (
-      <Container>
-        <NoDataMessage>No activity data available for charting</NoDataMessage>
-      </Container>
+      <ThemeProvider theme={currentTheme}>
+        <Container>
+          <NoDataMessage>No activity data available for charting</NoDataMessage>
+        </Container>
+      </ThemeProvider>
     );
   }
 
   if (!chartOptions) {
     return (
-      <Container>
-        <NoDataMessage>Loading chart data...</NoDataMessage>
-      </Container>
+      <ThemeProvider theme={currentTheme}>
+        <Container>
+          <NoDataMessage>Loading chart data...</NoDataMessage>
+        </Container>
+      </ThemeProvider>
     );
   }
 
   return (
-    <Container>
-      {/* Smoothing Controls */}
-      <ControlsSection>
-        <ControlGroup>
-          <ControlLabel>Data Smoothing:</ControlLabel>
-          <SmoothingSelect
-            value={smoothingSeconds}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setSmoothingSeconds(Number(e.target.value))
-            }
-          >
-            <option value={1}>1 second (no smoothing)</option>
-            <option value={5}>5 seconds</option>
-            <option value={10}>10 seconds</option>
-            <option value={30}>30 seconds</option>
-          </SmoothingSelect>
-        </ControlGroup>
-
-        {/* Test buttons for zoom functionality */}
-        <ControlGroup>
-          <button
-            onClick={() => setZoomInfo({ start: "1:23", end: "4:56" })}
-            style={{
-              padding: "6px 12px",
-              background: "#007bff",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              fontSize: "12px",
-            }}
-          >
-            Test Zoom
-          </button>
-          <button
-            onClick={() => setZoomInfo(null)}
-            style={{
-              marginLeft: "8px",
-              padding: "6px 12px",
-              background: "#dc3545",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              fontSize: "12px",
-            }}
-          >
-            Clear
-          </button>
-        </ControlGroup>
-      </ControlsSection>
-
-      {zoomInfo && (
-        <ZoomSummary>
-          <ZoomTitle>Zoom Selection</ZoomTitle>
-          <ZoomTimeRange>
-            <ZoomTime>Start: {zoomInfo.start}</ZoomTime>
-            <ZoomTime>End: {zoomInfo.end}</ZoomTime>
-          </ZoomTimeRange>
-        </ZoomSummary>
-      )}
-      <ChartContainer>
-        <HighchartsReact highcharts={Highcharts} options={chartOptions} />
-      </ChartContainer>
-      <DataSummary>
-        <SummaryTitle>Data Summary</SummaryTitle>
-        <SummaryGrid>
-          <SummaryItem>
-            <SummaryLabel>Total Records:</SummaryLabel>
-            <SummaryValue>{records.length.toLocaleString()}</SummaryValue>
-          </SummaryItem>
-          <SummaryItem>
-            <SummaryLabel>Duration:</SummaryLabel>
-            <SummaryValue>
-              {Math.round((records[records.length - 1]?.timer_time || 0) / 60)}{" "}
-              min
-            </SummaryValue>
-          </SummaryItem>
-          <SummaryItem>
-            <SummaryLabel>Data Points with HR:</SummaryLabel>
-            <SummaryValue>
-              {records.filter((r) => r.heart_rate).length}
-            </SummaryValue>
-          </SummaryItem>
-          <SummaryItem>
-            <SummaryLabel>Data Points with Power:</SummaryLabel>
-            <SummaryValue>{records.filter((r) => r.power).length}</SummaryValue>
-          </SummaryItem>
-          <SummaryItem>
-            <SummaryLabel>Smoothing Applied:</SummaryLabel>
-            <SummaryValue>
-              {smoothingSeconds === 1
-                ? "None"
-                : `${smoothingSeconds}s moving average`}
-            </SummaryValue>
-          </SummaryItem>
-        </SummaryGrid>
-      </DataSummary>
-    </Container>
+    <ThemeProvider theme={currentTheme}>
+      <Container>
+        {/* Smoothing Controls */}
+        <ControlsSection>
+          <ControlGroup>
+            <ControlLabel>Data Smoothing:</ControlLabel>
+            <SmoothingSelect
+              value={smoothingSeconds}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setSmoothingSeconds(Number(e.target.value))
+              }
+            >
+              <option value={1}>1 second (no smoothing)</option>
+              <option value={2}>2 seconds</option>
+              <option value={5}>5 seconds</option>
+              <option value={10}>10 seconds</option>
+              <option value={30}>30 seconds</option>
+            </SmoothingSelect>
+          </ControlGroup>
+          <ControlGroup>
+            <TestButton
+              onClick={() => setZoomInfo({ start: "1:23", end: "4:56" })}
+            >
+              Test Zoom
+            </TestButton>
+            <ClearButton onClick={() => setZoomInfo(null)}>Clear</ClearButton>
+          </ControlGroup>
+        </ControlsSection>
+        <ChartContainer>
+          <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+        </ChartContainer>
+        <DataSummary>
+          <SummaryTitle>Data Summary</SummaryTitle>
+          <SummaryGrid>
+            <SummaryItem>
+              <SummaryLabel>Total Records:</SummaryLabel>
+              <SummaryValue>{records.length.toLocaleString()}</SummaryValue>
+            </SummaryItem>
+            <SummaryItem>
+              <SummaryLabel>Duration:</SummaryLabel>
+              <SummaryValue>
+                {Math.round(
+                  (records[records.length - 1]?.timer_time || 0) / 60
+                )}{" "}
+                min
+              </SummaryValue>
+            </SummaryItem>
+            <SummaryItem>
+              <SummaryLabel>Data Points with HR:</SummaryLabel>
+              <SummaryValue>
+                {records.filter((r) => r.heart_rate).length}
+              </SummaryValue>
+            </SummaryItem>
+            <SummaryItem>
+              <SummaryLabel>Data Points with Power:</SummaryLabel>
+              <SummaryValue>
+                {records.filter((r) => r.power).length}
+              </SummaryValue>
+            </SummaryItem>
+            <SummaryItem>
+              <SummaryLabel>Smoothing Applied:</SummaryLabel>
+              <SummaryValue>
+                {smoothingSeconds === 1
+                  ? "None"
+                  : `${smoothingSeconds}s moving average`}
+              </SummaryValue>
+            </SummaryItem>
+          </SummaryGrid>
+        </DataSummary>
+        {zoomInfo && (
+          <ZoomSummary>
+            <ZoomTitle>Zoom Selection</ZoomTitle>
+            <ZoomTimeRange>
+              <ZoomTime>Start: {zoomInfo.start}</ZoomTime>
+              <ZoomTime>End: {zoomInfo.end}</ZoomTime>
+            </ZoomTimeRange>
+          </ZoomSummary>
+        )}
+      </Container>
+    </ThemeProvider>
   );
 };
 
@@ -712,36 +701,40 @@ export default HighchartsGraph;
 // Styled Components
 const Container = styled.div`
   padding: 20px;
-  background: #fff;
+  background: ${(props) => props.theme.colors.surface};
+  color: ${(props) => props.theme.colors.text};
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin: 20px 0;
   width: 100%;
   max-width: 1400px;
+  transition: background-color 0.3s ease, color 0.3s ease;
 `;
 
 const ChartContainer = styled.div`
-  width: 100%;
-  height: 600px;
+  // width: 100%;
+  // height: 400px;
   margin-bottom: 20px;
   overflow-x: auto;
+  background: ${(props) => props.theme.colors.surface};
+  border-radius: 4px;
 `;
 
 const NoDataMessage = styled.div`
   text-align: center;
-  color: #666;
+  color: ${(props) => props.theme.colors.text};
   font-size: 16px;
   padding: 40px;
 `;
 
 const DataSummary = styled.div`
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid ${(props) => props.theme.colors.border};
   padding-top: 20px;
 `;
 
 const SummaryTitle = styled.h3`
   margin: 0 0 12px 0;
-  color: #333;
+  color: ${(props) => props.theme.colors.text};
   font-size: 16px;
 `;
 
@@ -755,24 +748,26 @@ const SummaryItem = styled.div`
   display: flex;
   justify-content: space-between;
   padding: 8px 12px;
-  background: #f8f9fa;
+  background: ${(props) => props.theme.colors.background};
+  border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: 4px;
 `;
 
 const SummaryLabel = styled.span`
-  color: #666;
+  color: ${(props) => props.theme.colors.text};
   font-size: 14px;
+  opacity: 0.8;
 `;
 
 const SummaryValue = styled.span`
-  color: #333;
+  color: ${(props) => props.theme.colors.text};
   font-weight: 600;
   font-size: 14px;
 `;
 
 const ZoomSummary = styled.div`
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: ${(props) => props.theme.colors.background};
+  border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: 6px;
   padding: 12px 16px;
   margin-bottom: 16px;
@@ -781,7 +776,7 @@ const ZoomSummary = styled.div`
 
 const ZoomTitle = styled.h4`
   margin: 0 0 8px 0;
-  color: #495057;
+  color: ${(props) => props.theme.colors.text};
   font-size: 14px;
   font-weight: 600;
 `;
@@ -793,13 +788,13 @@ const ZoomTimeRange = styled.div`
 `;
 
 const ZoomTime = styled.span`
-  background: #ffffff;
-  border: 1px solid #ced4da;
+  background: ${(props) => props.theme.colors.surface};
+  border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 13px;
   font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-  color: #212529;
+  color: ${(props) => props.theme.colors.text};
   font-weight: 500;
 `;
 
@@ -809,8 +804,8 @@ const ControlsSection = styled.div`
   align-items: center;
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: ${(props) => props.theme.colors.background};
+  border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: 6px;
   flex-wrap: wrap;
   gap: 12px;
@@ -825,22 +820,82 @@ const ControlGroup = styled.div`
 const ControlLabel = styled.label`
   font-size: 14px;
   font-weight: 500;
-  color: #495057;
+  color: ${(props) => props.theme.colors.text};
   margin-right: 8px;
 `;
 
 const SmoothingSelect = styled.select`
   padding: 6px 12px;
-  border: 1px solid #ced4da;
+  border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: 4px;
-  background: white;
+  background: ${(props) => props.theme.colors.surface};
+  color: ${(props) => props.theme.colors.text};
   font-size: 14px;
-  color: #495057;
   cursor: pointer;
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: ${(props) => props.theme.colors.primary};
+    box-shadow: 0 0 0 2px ${(props) => props.theme.colors.primary}25;
+  }
+
+  option {
+    background: ${(props) => props.theme.colors.surface};
+    color: ${(props) => props.theme.colors.text};
   }
 `;
+
+const TestButton = styled.button`
+  padding: 6px 12px;
+  background: ${(props) => props.theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background: ${(props) => props.theme.colors.secondary};
+  }
+`;
+
+const ClearButton = styled.button`
+  margin-left: 8px;
+  padding: 6px 12px;
+  background: ${(props) => props.theme.colors.danger};
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    opacity: 0.8;
+  }
+`;
+
+// const ThemeToggleButton = styled.button`
+//   padding: 8px 16px;
+//   background: ${(props) => props.theme.colors.primary};
+//   color: white;
+//   border: none;
+//   border-radius: 4px;
+//   font-size: 14px;
+//   font-weight: 500;
+//   cursor: pointer;
+//   display: flex;
+//   align-items: center;
+//   gap: 6px;
+//   transition: all 0.3s ease;
+
+//   &:hover {
+//     background: ${(props) => props.theme.colors.secondary};
+//     transform: translateY(-1px);
+//   }
+
+//   &:active {
+//     transform: translateY(0);
+//   }
+// `;

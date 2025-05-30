@@ -82,11 +82,14 @@ const Container = styled.div`
   padding: 20px;
   max-width: 800px;
   margin: 0 auto;
+  background-color: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.text};
 `;
 
 const Title = styled.h1`
-  color: #333;
+  color: ${({ theme }) => theme.colors.text};
   margin-bottom: 20px;
+  font-family: ${({ theme }) => theme.fonts.heading};
 `;
 
 const ActivityList = styled.ul`
@@ -96,16 +99,17 @@ const ActivityList = styled.ul`
 `;
 
 const ActivityItem = styled.li`
-  background: #f5f5f5;
+  background: ${({ theme }) => theme.colors.surface};
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
-  border-left: 4px solid #007bff;
+  border-left: 4px solid ${({ theme }) => theme.colors.primary};
+  border: 1px solid ${({ theme }) => theme.colors.border};
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background: #e9ecef;
+    background: ${({ theme }) => theme.colors.light};
     transform: translateX(4px);
   }
 `;
@@ -113,25 +117,27 @@ const ActivityItem = styled.li`
 const ActivityDate = styled.div`
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: ${({ theme }) => theme.colors.text};
 `;
 
 const ActivitySport = styled.div`
   font-size: 14px;
-  color: #666;
+  color: ${({ theme }) => theme.colors.text};
+  opacity: 0.7;
   margin-top: 4px;
 `;
 
 const LoadingText = styled.div`
   text-align: center;
-  color: #666;
+  color: ${({ theme }) => theme.colors.text};
+  opacity: 0.7;
   font-style: italic;
 `;
 
 const ErrorText = styled.div`
-  color: #dc3545;
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
+  color: ${({ theme }) => theme.colors.danger};
+  background: ${({ theme }) => theme.colors.light};
+  border: 1px solid ${({ theme }) => theme.colors.danger};
   border-radius: 4px;
   padding: 12px;
   margin: 12px 0;

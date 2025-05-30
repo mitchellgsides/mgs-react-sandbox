@@ -3,8 +3,8 @@ import styled from "styled-components";
 import { useParams, Link } from "react-router-dom";
 import { DateTime } from "luxon";
 import { useActivityDetailsContext } from "./context/useActivityDetailsContext";
-import HighchartsGraph from "./components/HighchartsGraph";
-import HighstockGraph from "./components/HighstockGraph";
+import HighchartsGraph from "./components/Highcharts/HighchartsGraph";
+// import HighstockGraph from "./components/Highcharts/HighstockGraph";
 
 const ActivityDetails = () => {
   const { activityId } = useParams<{ activityId: string }>();
@@ -61,104 +61,93 @@ const ActivityDetails = () => {
   };
 
   return (
-    <>
-      <Container>
-        <BackLink to="/activities">← Back to Activities</BackLink>
-        <Title>Activity Details</Title>
+    <Container>
+      <BackLink to="/activities">← Back to Activities</BackLink>
+      <Title>Activity Details</Title>
 
-        <ActivityCard>
-          <ActivityHeader>
-            <ActivityDate>
-              {formatDate(selectedActivity.activity_timestamp)}
-            </ActivityDate>
-            {selectedActivity.sport && (
-              <ActivitySport>{selectedActivity.sport}</ActivitySport>
-            )}
-          </ActivityHeader>
+      <ChartSection>
+        <ChartTitle>Workout Chart</ChartTitle>
+        <HighchartsGraph />
+      </ChartSection>
 
-          <StatsGrid>
-            {selectedActivity.total_distance && (
-              <StatItem>
-                <StatLabel>Distance</StatLabel>
-                <StatValue>
-                  {(selectedActivity.total_distance / 1000).toFixed(2)} km
-                </StatValue>
-              </StatItem>
-            )}
+      <ActivityCard>
+        <ActivityHeader>
+          <ActivityDate>
+            {formatDate(selectedActivity.activity_timestamp)}
+          </ActivityDate>
+          {selectedActivity.sport && (
+            <ActivitySport>{selectedActivity.sport}</ActivitySport>
+          )}
+        </ActivityHeader>
 
-            {selectedActivity.total_timer_time && (
-              <StatItem>
-                <StatLabel>Duration</StatLabel>
-                <StatValue>
-                  {Math.round(selectedActivity.total_timer_time / 60)} min
-                </StatValue>
-              </StatItem>
-            )}
+        <StatsGrid>
+          {selectedActivity.total_distance && (
+            <StatItem>
+              <StatLabel>Distance</StatLabel>
+              <StatValue>
+                {(selectedActivity.total_distance / 1000).toFixed(2)} km
+              </StatValue>
+            </StatItem>
+          )}
 
-            {selectedActivity.avg_speed && (
-              <StatItem>
-                <StatLabel>Avg Speed</StatLabel>
-                <StatValue>
-                  {(selectedActivity.avg_speed * 3.6).toFixed(1)} km/h
-                </StatValue>
-              </StatItem>
-            )}
+          {selectedActivity.total_timer_time && (
+            <StatItem>
+              <StatLabel>Duration</StatLabel>
+              <StatValue>
+                {Math.round(selectedActivity.total_timer_time / 60)} min
+              </StatValue>
+            </StatItem>
+          )}
 
-            {selectedActivity.max_speed && (
-              <StatItem>
-                <StatLabel>Max Speed</StatLabel>
-                <StatValue>
-                  {(selectedActivity.max_speed * 3.6).toFixed(1)} km/h
-                </StatValue>
-              </StatItem>
-            )}
+          {selectedActivity.avg_speed && (
+            <StatItem>
+              <StatLabel>Avg Speed</StatLabel>
+              <StatValue>
+                {(selectedActivity.avg_speed * 3.6).toFixed(1)} km/h
+              </StatValue>
+            </StatItem>
+          )}
 
-            {selectedActivity.avg_power && (
-              <StatItem>
-                <StatLabel>Avg Power</StatLabel>
-                <StatValue>{selectedActivity.avg_power} W</StatValue>
-              </StatItem>
-            )}
+          {selectedActivity.max_speed && (
+            <StatItem>
+              <StatLabel>Max Speed</StatLabel>
+              <StatValue>
+                {(selectedActivity.max_speed * 3.6).toFixed(1)} km/h
+              </StatValue>
+            </StatItem>
+          )}
 
-            {selectedActivity.max_power && (
-              <StatItem>
-                <StatLabel>Max Power</StatLabel>
-                <StatValue>{selectedActivity.max_power} W</StatValue>
-              </StatItem>
-            )}
-          </StatsGrid>
+          {selectedActivity.avg_power && (
+            <StatItem>
+              <StatLabel>Avg Power</StatLabel>
+              <StatValue>{selectedActivity.avg_power} W</StatValue>
+            </StatItem>
+          )}
 
-          <RecordsSection>
-            <RecordsTitle>Activity Records</RecordsTitle>
-            {records ? (
-              <RecordsInfo>
-                {records.length > 0 ? (
-                  <RecordsCount>
-                    {records.length} data points loaded
-                  </RecordsCount>
-                ) : (
-                  <RecordsCount>
-                    No records found for this activity
-                  </RecordsCount>
-                )}
-              </RecordsInfo>
-            ) : (
-              <LoadingText>Loading activity records...</LoadingText>
-            )}
-          </RecordsSection>
-        </ActivityCard>
-      </Container>
-      <ChartComparison>
-        <ChartSection>
-          <ChartTitle>Custom Smoothing (Original)</ChartTitle>
-          <HighchartsGraph />
-        </ChartSection>
-        <ChartSection>
-          <ChartTitle>Highstock Native DataGrouping</ChartTitle>
-          <HighstockGraph />
-        </ChartSection>
-      </ChartComparison>
-    </>
+          {selectedActivity.max_power && (
+            <StatItem>
+              <StatLabel>Max Power</StatLabel>
+              <StatValue>{selectedActivity.max_power} W</StatValue>
+            </StatItem>
+          )}
+        </StatsGrid>
+
+        <RecordsSection>
+          <RecordsTitle>Activity Records</RecordsTitle>
+          {records ? (
+            <RecordsInfo>
+              {records.length > 0 ? (
+                <RecordsCount>{records.length} data points loaded</RecordsCount>
+              ) : (
+                <RecordsCount>No records found for this activity</RecordsCount>
+              )}
+            </RecordsInfo>
+          ) : (
+            <LoadingText>Loading activity records...</LoadingText>
+          )}
+        </RecordsSection>
+      </ActivityCard>
+    </Container>
   );
 };
 
@@ -169,12 +158,14 @@ const Container = styled.div`
   padding: 20px;
   width: 1000px;
   margin: 0 auto;
+  background-color: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.text};
 `;
 
 const BackLink = styled(Link)`
   display: inline-block;
   margin-bottom: 16px;
-  color: #007bff;
+  color: ${({ theme }) => theme.colors.primary};
   text-decoration: none;
   font-weight: 500;
 
@@ -184,34 +175,36 @@ const BackLink = styled(Link)`
 `;
 
 const Title = styled.h1`
-  color: #333;
+  color: ${({ theme }) => theme.colors.text};
   margin-bottom: 20px;
+  font-family: ${({ theme }) => theme.fonts.heading};
 `;
 
 const ActivityCard = styled.div`
-  background: #fff;
+  background: ${({ theme }) => theme.colors.surface};
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e9ecef;
+  border: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
 const ActivityHeader = styled.div`
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
 const ActivityDate = styled.h2`
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: ${({ theme }) => theme.colors.text};
   margin: 0 0 8px 0;
+  font-family: ${({ theme }) => theme.fonts.heading};
 `;
 
 const ActivitySport = styled.div`
   font-size: 16px;
-  color: #007bff;
+  color: ${({ theme }) => theme.colors.primary};
   font-weight: 500;
   text-transform: capitalize;
 `;
@@ -224,15 +217,17 @@ const StatsGrid = styled.div`
 `;
 
 const StatItem = styled.div`
-  background: #f8f9fa;
+  background: ${({ theme }) => theme.colors.light};
   border-radius: 8px;
   padding: 16px;
   text-align: center;
+  border: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
 const StatLabel = styled.div`
   font-size: 12px;
-  color: #666;
+  color: ${({ theme }) => theme.colors.text};
+  opacity: 0.7;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -242,65 +237,57 @@ const StatLabel = styled.div`
 const StatValue = styled.div`
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: ${({ theme }) => theme.colors.text};
 `;
 
 const RecordsSection = styled.div`
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
   padding-top: 20px;
 `;
 
 const RecordsTitle = styled.h3`
   font-size: 18px;
-  color: #333;
+  color: ${({ theme }) => theme.colors.text};
   margin-bottom: 12px;
+  font-family: ${({ theme }) => theme.fonts.heading};
 `;
 
 const RecordsInfo = styled.div`
-  background: #f8f9fa;
+  background: ${({ theme }) => theme.colors.light};
   border-radius: 6px;
   padding: 12px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
 const RecordsCount = styled.div`
   font-size: 14px;
-  color: #666;
+  color: ${({ theme }) => theme.colors.text};
+  opacity: 0.8;
 `;
 
 const LoadingText = styled.div`
   text-align: center;
-  color: #666;
+  color: ${({ theme }) => theme.colors.text};
+  opacity: 0.7;
   font-style: italic;
 `;
 
 const ErrorText = styled.div`
-  color: #dc3545;
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
+  color: ${({ theme }) => theme.colors.danger};
+  background: ${({ theme }) => theme.colors.light};
+  border: 1px solid ${({ theme }) => theme.colors.danger};
   border-radius: 4px;
   padding: 12px;
   margin: 12px 0;
 `;
 
-const ChartComparison = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin: 20px 0;
-`;
-
 const ChartSection = styled.div`
   width: 1000px;
+  margin-bottom: 20px;
 `;
 
 const ChartTitle = styled.h2`
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 10px 20px;
-  padding: 10px 20px;
-  background: #f8f9fa;
-  border-radius: 8px 8px 0 0;
-  border: 1px solid #dee2e6;
-  border-bottom: none;
+  color: ${({ theme }) => theme.colors.text};
+  margin-bottom: 16px;
+  font-family: ${({ theme }) => theme.fonts.heading};
 `;
