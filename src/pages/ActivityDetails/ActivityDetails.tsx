@@ -27,6 +27,8 @@ const ActivityDetails = () => {
     }
   }, [activityId, activities, selectedActivity?.id, setSelectedActivity]);
 
+  console.log("xxx selectedActivity:", selectedActivity);
+
   if (loading) {
     return (
       <Container>
@@ -85,7 +87,7 @@ const ActivityDetails = () => {
             <StatItem>
               <StatLabel>Distance</StatLabel>
               <StatValue>
-                {(selectedActivity.total_distance / 1000).toFixed(2)} km
+                {selectedActivity.total_distance.toFixed(2)} km
               </StatValue>
             </StatItem>
           )}
@@ -156,7 +158,11 @@ export default ActivityDetails;
 // Styled Components
 const Container = styled.div`
   padding: 20px;
-  width: 1000px;
+  //   width: 1000px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   margin: 0 auto;
   background-color: ${({ theme }) => theme.colors.background};
   color: ${({ theme }) => theme.colors.text};
@@ -184,6 +190,8 @@ const ActivityCard = styled.div`
   background: ${({ theme }) => theme.colors.surface};
   border-radius: 12px;
   padding: 24px;
+  flex-grow: 1;
+  width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 1px solid ${({ theme }) => theme.colors.border};
 `;

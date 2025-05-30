@@ -5,6 +5,7 @@ import styled, { ThemeProvider } from "styled-components";
 import { useActivityDetailsContext } from "../../context/useActivityDetailsContext";
 import { darkTheme, lightTheme } from "../../../../theme/theme";
 import { useAuthContext } from "../../../../contexts/Auth/useAuthContext";
+import { buildChartData } from "./buildChartData";
 
 const HighchartsGraph = () => {
   const { records, selectedActivity } = useActivityDetailsContext();
@@ -38,41 +39,41 @@ const HighchartsGraph = () => {
   }, []);
 
   // Smoothing function - applies moving average over specified time window
-  const applySmoothingToSeries = (
-    data: [number, number][],
-    windowSeconds: number
-  ) => {
-    if (windowSeconds <= 1 || data.length === 0) {
-      return data; // No smoothing needed
-    }
+  // const applySmoothingToSeries = (
+  //   data: [number, number][],
+  //   windowSeconds: number
+  // ) => {
+  //   if (windowSeconds <= 1 || data.length === 0) {
+  //     return data; // No smoothing needed
+  //   }
 
-    const windowMs = windowSeconds * 1000;
-    const smoothedData: [number, number][] = [];
+  //   const windowMs = windowSeconds * 1000;
+  //   const smoothedData: [number, number][] = [];
 
-    for (let i = 0; i < data.length; i++) {
-      const currentTime = data[i][0];
-      const windowStart = currentTime - windowMs / 2;
-      const windowEnd = currentTime + windowMs / 2;
+  //   for (let i = 0; i < data.length; i++) {
+  //     const currentTime = data[i][0];
+  //     const windowStart = currentTime - windowMs / 2;
+  //     const windowEnd = currentTime + windowMs / 2;
 
-      // Find all points within the smoothing window
-      const windowPoints = data.filter(
-        (point) => point[0] >= windowStart && point[0] <= windowEnd
-      );
+  //     // Find all points within the smoothing window
+  //     const windowPoints = data.filter(
+  //       (point) => point[0] >= windowStart && point[0] <= windowEnd
+  //     );
 
-      if (windowPoints.length > 0) {
-        // Calculate average value for the window
-        const averageValue =
-          windowPoints.reduce((sum, point) => sum + point[1], 0) /
-          windowPoints.length;
-        smoothedData.push([currentTime, averageValue]);
-      } else {
-        // If no points in window, use original value
-        smoothedData.push(data[i]);
-      }
-    }
+  //     if (windowPoints.length > 0) {
+  //       // Calculate average value for the window
+  //       const averageValue =
+  //         windowPoints.reduce((sum, point) => sum + point[1], 0) /
+  //         windowPoints.length;
+  //       smoothedData.push([currentTime, averageValue]);
+  //     } else {
+  //       // If no points in window, use original value
+  //       smoothedData.push(data[i]);
+  //     }
+  //   }
 
-    return smoothedData;
-  };
+  //   return smoothedData;
+  // };
 
   const chartOptions = useMemo(() => {
     if (!records || records.length === 0) {
@@ -80,170 +81,172 @@ const HighchartsGraph = () => {
     }
 
     // Process data for different series
-    const processedData = records.map((record, index) => ({
-      time: record.timer_time, // Using timer_time as x-axis (active time in seconds)
-      timeMs: record.timer_time * 1000, // Convert to milliseconds for Highcharts
-      heartRate: record.heart_rate || null,
-      power: record.power || null,
-      speed: record.speed ? record.speed : null,
-      cadence: record.cadence || null,
-      distance: record.distance ? record.distance : null,
-      altitude: record.altitude || null,
-      elapsedTime:
-        index *
-        (records.length > 1
-          ? (records[records.length - 1].timer_time - records[0].timer_time) /
-            (records.length - 1)
-          : 1),
-    }));
+    // const processedData = records.map((record, index) => ({
+    //   time: record.timer_time, // Using timer_time as x-axis (active time in seconds)
+    //   timeMs: record.timer_time * 1000, // Convert to milliseconds for Highcharts
+    //   heartRate: record.heart_rate || null,
+    //   power: record.power || null,
+    //   speed: record.speed ? record.speed : null,
+    //   cadence: record.cadence || null,
+    //   distance: record.distance ? record.distance : null,
+    //   altitude: record.altitude || null,
+    //   elapsedTime:
+    //     index *
+    //     (records.length > 1
+    //       ? (records[records.length - 1].timer_time - records[0].timer_time) /
+    //         (records.length - 1)
+    //       : 1),
+    // }));
 
     // Create series data arrays
-    const heartRateData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.heartRate !== null)
-        .map((d) => [d.timeMs, d.heartRate!]),
-      smoothingSeconds
-    );
+    // const heartRateData = applySmoothingToSeries(
+    //   processedData
+    //     .filter((d) => d.heartRate !== null)
+    //     .map((d) => [d.timeMs, d.heartRate!]),
+    //   smoothingSeconds
+    // );
 
-    const powerData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.power !== null)
-        .map((d) => [d.timeMs, d.power!]),
-      smoothingSeconds
-    );
+    // const powerData = applySmoothingToSeries(
+    //   processedData
+    //     .filter((d) => d.power !== null)
+    //     .map((d) => [d.timeMs, d.power!]),
+    //   smoothingSeconds
+    // );
 
-    const speedData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.speed !== null)
-        .map((d) => [d.timeMs, d.speed!]),
-      smoothingSeconds
-    );
+    // const speedData = applySmoothingToSeries(
+    //   processedData
+    //     .filter((d) => d.speed !== null)
+    //     .map((d) => [d.timeMs, d.speed!]),
+    //   smoothingSeconds
+    // );
 
-    const cadenceData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.cadence !== null)
-        .map((d) => [d.timeMs, d.cadence!]),
-      smoothingSeconds
-    );
+    // const cadenceData = applySmoothingToSeries(
+    //   processedData
+    //     .filter((d) => d.cadence !== null)
+    //     .map((d) => [d.timeMs, d.cadence!]),
+    //   smoothingSeconds
+    // );
 
-    const distanceData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.distance !== null)
-        .map((d) => [d.timeMs, d.distance!]),
-      smoothingSeconds
-    );
+    // const distanceData = applySmoothingToSeries(
+    //   processedData
+    //     .filter((d) => d.distance !== null)
+    //     .map((d) => [d.timeMs, d.distance!]),
+    //   smoothingSeconds
+    // );
 
-    const altitudeData = applySmoothingToSeries(
-      processedData
-        .filter((d) => d.altitude !== null)
-        .map((d) => [d.timeMs, d.altitude!]),
-      smoothingSeconds
-    );
+    // const altitudeData = applySmoothingToSeries(
+    //   processedData
+    //     .filter((d) => d.altitude !== null)
+    //     .map((d) => [d.timeMs, d.altitude!]),
+    //   smoothingSeconds
+    // );
 
     // HasData functions
-    const hasHeartRateData = heartRateData.length > 0;
-    const hasPowerData = powerData.length > 0;
-    const hasSpeedData = speedData.length > 0;
-    const hasCadenceData = cadenceData.length > 0;
-    const hasDistanceData = distanceData.length > 0;
-    const hasAltitudeData = altitudeData.length > 0;
+    // const hasHeartRateData = heartRateData.length > 0;
+    // const hasPowerData = powerData.length > 0;
+    // const hasSpeedData = speedData.length > 0;
+    // const hasCadenceData = cadenceData.length > 0;
+    // const hasDistanceData = distanceData.length > 0;
+    // const hasAltitudeData = altitudeData.length > 0;
 
     // Build y-axes dynamically based on available data
-    const yAxes = [];
-    let offsetCount = 0;
+    // const yAxes = [];
+    // let offsetCount = 0;
 
-    if (hasPowerData) {
-      yAxes.push({
-        id: "power",
-        title: {
-          text: "Power (W)",
-          style: { color: currentTheme.colors.warning },
-        },
-        labels: {
-          style: { color: currentTheme.colors.warning },
-        },
-        opposite: true,
-        offset: offsetCount > 0 ? offsetCount * 50 : 0,
-      });
-      offsetCount++;
-    }
+    // if (hasPowerData) {
+    //   yAxes.push({
+    //     id: "power",
+    //     title: {
+    //       text: "Power (W)",
+    //       style: { color: currentTheme.colors.warning },
+    //     },
+    //     labels: {
+    //       style: { color: currentTheme.colors.warning },
+    //     },
+    //     opposite: true,
+    //     offset: offsetCount > 0 ? offsetCount * 50 : 0,
+    //   });
+    //   offsetCount++;
+    // }
 
-    if (hasHeartRateData) {
-      yAxes.push({
-        id: "heartrate",
-        title: {
-          text: "Heart Rate (bpm)",
-          style: { color: currentTheme.colors.danger },
-        },
-        labels: {
-          style: { color: currentTheme.colors.danger },
-        },
-        opposite: false,
-        offset: offsetCount > 1 ? Math.floor(offsetCount / 2) * 50 : 0,
-      });
-    }
+    // if (hasHeartRateData) {
+    //   yAxes.push({
+    //     id: "heartrate",
+    //     title: {
+    //       text: "Heart Rate (bpm)",
+    //       style: { color: currentTheme.colors.danger },
+    //     },
+    //     labels: {
+    //       style: { color: currentTheme.colors.danger },
+    //     },
+    //     opposite: false,
+    //     offset: offsetCount > 1 ? Math.floor(offsetCount / 2) * 50 : 0,
+    //   });
+    // }
 
-    if (hasSpeedData) {
-      yAxes.push({
-        id: "speed",
-        title: {
-          text: "Speed (km/h)",
-          style: { color: currentTheme.colors.info },
-        },
-        labels: {
-          style: { color: currentTheme.colors.info },
-        },
-        opposite: false,
-        offset: offsetCount > 1 ? Math.floor(offsetCount / 2) * 50 : 0,
-      });
-    }
+    // if (hasSpeedData) {
+    //   yAxes.push({
+    //     id: "speed",
+    //     title: {
+    //       text: "Speed (km/h)",
+    //       style: { color: currentTheme.colors.info },
+    //     },
+    //     labels: {
+    //       style: { color: currentTheme.colors.info },
+    //     },
+    //     opposite: false,
+    //     offset: offsetCount > 1 ? Math.floor(offsetCount / 2) * 50 : 0,
+    //   });
+    // }
 
-    if (hasCadenceData) {
-      yAxes.push({
-        id: "cadence",
-        title: {
-          text: "Cadence (rpm)",
-          style: { color: currentTheme.colors.secondary },
-        },
-        labels: {
-          style: { color: currentTheme.colors.secondary },
-        },
-        opposite: true,
-        offset: offsetCount > 0 ? offsetCount * 50 : 0,
-      });
-      offsetCount++;
-    }
+    // if (hasCadenceData) {
+    //   yAxes.push({
+    //     id: "cadence",
+    //     title: {
+    //       text: "Cadence (rpm)",
+    //       style: { color: currentTheme.colors.secondary },
+    //     },
+    //     labels: {
+    //       style: { color: currentTheme.colors.secondary },
+    //     },
+    //     opposite: true,
+    //     offset: offsetCount > 0 ? offsetCount * 50 : 0,
+    //   });
+    //   offsetCount++;
+    // }
 
-    if (hasDistanceData) {
-      yAxes.push({
-        id: "distance",
-        title: {
-          text: "Distance (km)",
-          style: { color: currentTheme.colors.success },
-        },
-        labels: {
-          style: { color: currentTheme.colors.success },
-        },
-        opposite: false,
-        offset: offsetCount > 1 ? Math.floor(offsetCount / 2) * 50 : 0,
-        enabled: false,
-      });
-    }
+    // if (hasDistanceData) {
+    //   yAxes.push({
+    //     id: "distance",
+    //     title: {
+    //       text: "Distance (km)",
+    //       style: { color: currentTheme.colors.success },
+    //     },
+    //     labels: {
+    //       style: { color: currentTheme.colors.success },
+    //     },
+    //     opposite: false,
+    //     offset: offsetCount > 1 ? Math.floor(offsetCount / 2) * 50 : 0,
+    //     enabled: false,
+    //   });
+    // }
 
-    if (hasAltitudeData) {
-      yAxes.push({
-        id: "altitude",
-        title: {
-          text: "Altitude (m)",
-          style: { color: currentTheme.colors.light },
-        },
-        labels: {
-          style: { color: currentTheme.colors.light },
-        },
-        opposite: true,
-        offset: offsetCount > 0 ? offsetCount * 50 : 0,
-      });
-    }
+    // if (hasAltitudeData) {
+    //   yAxes.push({
+    //     id: "altitude",
+    //     title: {
+    //       text: "Altitude (m)",
+    //       style: { color: currentTheme.colors.light },
+    //     },
+    //     labels: {
+    //       style: { color: currentTheme.colors.light },
+    //     },
+    //     opposite: true,
+    //     offset: offsetCount > 0 ? offsetCount * 50 : 0,
+    //   });
+    // }
+
+    const { yAxes, series: seriesData } = buildChartData(records, currentTheme);
 
     return {
       chart: {
@@ -360,141 +363,142 @@ const HighchartsGraph = () => {
         },
       },
       yAxis: yAxes,
-      series: [
-        // Altitude as area chart (background) - only if data exists
-        ...(hasAltitudeData
-          ? [
-              {
-                name: "Altitude",
-                type: "area",
-                data: altitudeData,
-                yAxis: "altitude",
-                color: "rgba(127, 140, 141, 0.7)",
-                fillColor: "rgba(127, 140, 141, 0.4)",
-                lineWidth: 1,
-                zIndex: 1,
-                tooltip: {
-                  valueSuffix: " m",
-                },
-                states: {
-                  hover: {
-                    enabled: false,
-                  },
-                },
-              },
-            ]
-          : []),
+      series: seriesData,
+      // series: [
+      //   // Altitude as area chart (background) - only if data exists
+      //   ...(hasAltitudeData
+      //     ? [
+      //         {
+      //           name: "Altitude",
+      //           type: "area",
+      //           data: altitudeData,
+      //           yAxis: "altitude",
+      //           color: "rgba(127, 140, 141, 0.7)",
+      //           fillColor: "rgba(127, 140, 141, 0.4)",
+      //           lineWidth: 1,
+      //           zIndex: 1,
+      //           tooltip: {
+      //             valueSuffix: " m",
+      //           },
+      //           states: {
+      //             hover: {
+      //               enabled: false,
+      //             },
+      //           },
+      //         },
+      //       ]
+      //     : []),
 
-        // Heart Rate - only if data exists
-        ...(hasHeartRateData
-          ? [
-              {
-                name: "Heart Rate",
-                data: heartRateData,
-                yAxis: "heartrate",
-                color: "#e74c3c",
-                lineWidth: 1,
-                zIndex: 3,
-                tooltip: {
-                  valueSuffix: " bpm",
-                },
-                states: {
-                  hover: {
-                    enabled: false,
-                  },
-                },
-              },
-            ]
-          : []),
+      //   // Heart Rate - only if data exists
+      //   ...(hasHeartRateData
+      //     ? [
+      //         {
+      //           name: "Heart Rate",
+      //           data: heartRateData,
+      //           yAxis: "heartrate",
+      //           color: "#e74c3c",
+      //           lineWidth: 1,
+      //           zIndex: 3,
+      //           tooltip: {
+      //             valueSuffix: " bpm",
+      //           },
+      //           states: {
+      //             hover: {
+      //               enabled: false,
+      //             },
+      //           },
+      //         },
+      //       ]
+      //     : []),
 
-        // Power - only if data exists
-        ...(hasPowerData
-          ? [
-              {
-                name: "Power",
-                data: powerData,
-                yAxis: "power",
-                color: "#f39c12",
-                lineWidth: 1,
-                zIndex: 3,
-                tooltip: {
-                  valueSuffix: " W",
-                },
-                states: {
-                  hover: {
-                    enabled: false,
-                  },
-                },
-              },
-            ]
-          : []),
+      //   // Power - only if data exists
+      //   ...(hasPowerData
+      //     ? [
+      //         {
+      //           name: "Power",
+      //           data: powerData,
+      //           yAxis: "power",
+      //           color: "#f39c12",
+      //           lineWidth: 1,
+      //           zIndex: 3,
+      //           tooltip: {
+      //             valueSuffix: " W",
+      //           },
+      //           states: {
+      //             hover: {
+      //               enabled: false,
+      //             },
+      //           },
+      //         },
+      //       ]
+      //     : []),
 
-        // Speed - only if data exists
-        ...(hasSpeedData
-          ? [
-              {
-                name: "Speed",
-                data: speedData,
-                yAxis: "speed",
-                color: "#3498db",
-                lineWidth: 1,
-                zIndex: 3,
-                tooltip: {
-                  valueSuffix: " km/h",
-                },
-                states: {
-                  hover: {
-                    enabled: false,
-                  },
-                },
-              },
-            ]
-          : []),
+      //   // Speed - only if data exists
+      //   ...(hasSpeedData
+      //     ? [
+      //         {
+      //           name: "Speed",
+      //           data: speedData,
+      //           yAxis: "speed",
+      //           color: "#3498db",
+      //           lineWidth: 1,
+      //           zIndex: 3,
+      //           tooltip: {
+      //             valueSuffix: " km/h",
+      //           },
+      //           states: {
+      //             hover: {
+      //               enabled: false,
+      //             },
+      //           },
+      //         },
+      //       ]
+      //     : []),
 
-        // Cadence - only if data exists
-        ...(hasCadenceData
-          ? [
-              {
-                name: "Cadence",
-                data: cadenceData,
-                yAxis: "cadence",
-                color: "#9b59b6",
-                lineWidth: 1,
-                zIndex: 3,
-                tooltip: {
-                  valueSuffix: " rpm",
-                },
-                states: {
-                  hover: {
-                    enabled: false,
-                  },
-                },
-              },
-            ]
-          : []),
+      //   // Cadence - only if data exists
+      //   ...(hasCadenceData
+      //     ? [
+      //         {
+      //           name: "Cadence",
+      //           data: cadenceData,
+      //           yAxis: "cadence",
+      //           color: "#9b59b6",
+      //           lineWidth: 1,
+      //           zIndex: 3,
+      //           tooltip: {
+      //             valueSuffix: " rpm",
+      //           },
+      //           states: {
+      //             hover: {
+      //               enabled: false,
+      //             },
+      //           },
+      //         },
+      //       ]
+      //     : []),
 
-        // Distance - only if data exists
-        ...(hasDistanceData
-          ? [
-              {
-                name: "Distance",
-                data: distanceData,
-                yAxis: "distance",
-                color: "#27ae60",
-                lineWidth: 1,
-                zIndex: 3,
-                tooltip: {
-                  valueSuffix: " km",
-                },
-                states: {
-                  hover: {
-                    enabled: false,
-                  },
-                },
-              },
-            ]
-          : []),
-      ],
+      //   // Distance - only if data exists
+      //   ...(hasDistanceData
+      //     ? [
+      //         {
+      //           name: "Distance",
+      //           data: distanceData,
+      //           yAxis: "distance",
+      //           color: "#27ae60",
+      //           lineWidth: 1,
+      //           zIndex: 3,
+      //           tooltip: {
+      //             valueSuffix: " km",
+      //           },
+      //           states: {
+      //             hover: {
+      //               enabled: false,
+      //             },
+      //           },
+      //         },
+      //       ]
+      //     : []),
+      // ],
       tooltip: {
         shared: true,
         crosshairs: [
