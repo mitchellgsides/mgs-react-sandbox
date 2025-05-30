@@ -89,7 +89,6 @@ const FitFileUploader = () => {
   };
 
   const successfulUploads = uploadResults.filter((r) => {
-    console.log("xxx result?", r);
     return r.result.success;
   }).length;
 

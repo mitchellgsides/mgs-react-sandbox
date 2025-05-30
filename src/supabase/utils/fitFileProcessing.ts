@@ -186,6 +186,7 @@ class FitDataProcessor {
 
     // Calculate activity bounds
     const bounds = this.calculateActivityBounds(session.laps);
+    console.log("xxx session:", session);
 
     return {
       user_id: userId,

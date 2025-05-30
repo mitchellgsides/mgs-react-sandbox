@@ -1,7 +1,12 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { format, startOfWeek, addWeeks, subWeeks, isSameDay } from "date-fns";
-import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+import {
+  IoChevronBack,
+  IoChevronForward,
+  IoRefresh,
+  IoWarning,
+} from "react-icons/io5";
 import DayDetails from "./components/Day/DayDetails";
 import WeekRow from "./components/WeekRow";
 import { useCalendarContext } from "./context/CalendarContext";
@@ -19,6 +24,9 @@ const CalendarPage: React.FC = () => {
     loadMoreWeeks,
     selectedDate,
     setSelectedDate,
+    isLoadingActivities,
+    activitiesError,
+    refreshActivities,
   } = useCalendarContext();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -312,6 +320,28 @@ const CalendarPage: React.FC = () => {
           </MonthNavigationButtons>
           <TodayButton onClick={scrollToToday}>Today</TodayButton>
         </HeaderLeft>
+        <ActivityStatus>
+          {isLoadingActivities && (
+            <LoadingIndicator>
+              <IoRefresh className="loading-icon" />
+              <span>Loading activities...</span>
+            </LoadingIndicator>
+          )}
+          {activitiesError && (
+            <ErrorIndicator>
+              <IoWarning className="error-icon" />
+              <span>Error loading activities</span>
+              <RefreshButton onClick={() => refreshActivities()}>
+                <IoRefresh />
+              </RefreshButton>
+            </ErrorIndicator>
+          )}
+          {!isLoadingActivities && !activitiesError && (
+            <SuccessIndicator>
+              <span>Activities loaded</span>
+            </SuccessIndicator>
+          )}
+        </ActivityStatus>
       </CalendarHeader>
 
       <CalendarContent>
@@ -483,6 +513,78 @@ const CalendarContainer = styled.div`
 
 const Calendar = styled.div`
   width: 100%;
+`;
+
+const ActivityStatus = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  min-width: 180px;
+  justify-content: flex-end;
+
+  .loading-icon {
+    animation: spin 1s linear infinite;
+    color: ${({ theme }) => theme.colors.primary};
+  }
+
+  .error-icon {
+    color: ${({ theme }) => theme.colors.danger};
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const LoadingIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 0.9rem;
+`;
+
+const ErrorIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: ${({ theme }) => theme.colors.danger};
+  font-size: 0.9rem;
+`;
+
+const SuccessIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: ${({ theme }) => theme.colors.success || theme.colors.primary};
+  font-size: 0.9rem;
+  opacity: 0.7;
+`;
+
+const RefreshButton = styled.button`
+  background: none;
+  border: 1px solid ${({ theme }) => theme.colors.danger};
+  color: ${({ theme }) => theme.colors.danger};
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.danger};
+    color: white;
+  }
 `;
 
 export default CalendarPage;

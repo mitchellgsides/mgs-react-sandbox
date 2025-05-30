@@ -10,7 +10,7 @@ export class FitDataStorage {
    */
   async storeFitData(processedData) {
     const { activity, laps, records, stats } = processedData;
-
+    console.log('xxx processedData', processedData);
     try {
       // Check for required data
       if (!activity || !activity.user_id) {
