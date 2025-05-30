@@ -67,6 +67,7 @@ export const fetchActivitiesForCalendar = async (
         `
         id,
         activity_timestamp,
+        name,
         sport,
         total_distance,
         total_timer_time,
@@ -107,14 +108,10 @@ export const fetchActivitiesForCalendar = async (
             .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
         }
 
-        // Generate activity name based on sport and distance/duration
-        let activityName = sport.charAt(0).toUpperCase() + sport.slice(1);
-        if (activity.total_distance && activity.total_distance > 0) {
-          const distanceKm = (activity.total_distance / 1000).toFixed(1);
-          activityName += ` - ${distanceKm}km`;
-        } else if (durationString) {
-          activityName += ` - ${durationString}`;
-        }
+        // Use stored activity name or fallback to generated name
+        const activityName =
+          activity.name ||
+          `${sport.charAt(0).toUpperCase() + sport.slice(1)} Activity`;
 
         // Generate description with stats
         let description = `${sport} activity`;
@@ -205,6 +202,7 @@ export const fetchActivitiesForDateRange = async (
         `
         id,
         activity_timestamp,
+        name,
         sport,
         total_distance,
         total_timer_time,
@@ -244,12 +242,50 @@ export const fetchActivitiesForDateRange = async (
             .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
         }
 
-        let activityName = sport.charAt(0).toUpperCase() + sport.slice(1);
+        // Use stored activity name or fallback to generated name
+        const activityName =
+          activity.name ||
+          `${sport.charAt(0).toUpperCase() + sport.slice(1)} Activity`;
+
+        // Generate description with stats
+        let description = `${sport} activity`;
+        const stats: string[] = [];
+
         if (activity.total_distance && activity.total_distance > 0) {
-          const distanceKm = (activity.total_distance / 1000).toFixed(1);
-          activityName += ` - ${distanceKm}km`;
-        } else if (durationString) {
-          activityName += ` - ${durationString}`;
+          stats.push(
+            `Distance: ${(activity.total_distance / 1000).toFixed(1)}km`
+          );
+        }
+
+        if (activity.avg_speed && activity.avg_speed > 0) {
+          const speedKmh = (activity.avg_speed * 3.6).toFixed(1);
+          stats.push(`Avg Speed: ${speedKmh}km/h`);
+        }
+
+        if (activity.avg_power && activity.avg_power > 0) {
+          const powerText = `Avg Power: ${Math.round(activity.avg_power)}W`;
+          if (activity.max_power && activity.max_power > 0) {
+            stats.push(
+              `${powerText} (Max: ${Math.round(activity.max_power)}W)`
+            );
+          } else {
+            stats.push(powerText);
+          }
+        }
+
+        if (activity.avg_heart_rate && activity.avg_heart_rate > 0) {
+          const hrText = `Avg HR: ${Math.round(activity.avg_heart_rate)}bpm`;
+          if (activity.max_heart_rate && activity.max_heart_rate > 0) {
+            stats.push(
+              `${hrText} (Max: ${Math.round(activity.max_heart_rate)}bpm)`
+            );
+          } else {
+            stats.push(hrText);
+          }
+        }
+
+        if (stats.length > 0) {
+          description += ` • ${stats.join(" • ")}`;
         }
 
         return {
@@ -258,6 +294,7 @@ export const fetchActivitiesForDateRange = async (
           name: activityName,
           duration: durationString,
           type: workoutType,
+          description,
           sport: activity.sport,
           total_distance: activity.total_distance,
           avg_speed: activity.avg_speed,

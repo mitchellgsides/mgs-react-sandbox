@@ -49,6 +49,7 @@ interface FitData {
 interface ProcessedActivity {
   user_id: string;
   activity_timestamp: string; // ISO string
+  name: string; // Human-readable name from filename
   sport: string;
   sub_sport: string;
   total_distance?: number;
@@ -142,9 +143,33 @@ class FitDataProcessor {
   private readonly MAX_RECORDS_PER_LAP: number = 10000; // Prevent memory issues
 
   /**
+   * Generate a human-readable activity name from filename
+   */
+  private formatActivityName(filename?: string): string {
+    if (!filename) {
+      return "Activity";
+    }
+
+    // Remove file extension
+    let name = filename.replace(/\.[^/.]+$/, "");
+
+    // Replace underscores with spaces
+    name = name.replace(/_/g, " ");
+
+    // Trim any extra whitespace
+    name = name.trim();
+
+    return name || "Activity";
+  }
+
+  /**
    * Main processing function for FIT file data with optimizations
    */
-  processFitFile(fitData: FitData, userId: string): ProcessedFitData {
+  processFitFile(
+    fitData: FitData,
+    userId: string,
+    filename?: string
+  ): ProcessedFitData {
     try {
       const activity = fitData.activity;
       const session = activity.sessions[0];
@@ -166,7 +191,7 @@ class FitDataProcessor {
       }
 
       return {
-        activity: this.extractActivityMetadata(fitData, userId),
+        activity: this.extractActivityMetadata(fitData, userId, filename),
         laps: this.processLaps(session.laps),
         records: this.processRecords(session.laps),
         stats: this.calculateActivityStats(session),
@@ -186,7 +211,8 @@ class FitDataProcessor {
    */
   private extractActivityMetadata(
     fitData: FitData,
-    userId: string
+    userId: string,
+    filename?: string
   ): ProcessedActivity {
     const activity = fitData.activity;
     const session = activity.sessions[0];
@@ -202,6 +228,7 @@ class FitDataProcessor {
     return {
       user_id: userId,
       activity_timestamp: activity.timestamp,
+      name: this.formatActivityName(filename),
       sport: session.sport || "unknown",
       sub_sport: session.sub_sport || "generic",
       total_distance: session.total_distance,

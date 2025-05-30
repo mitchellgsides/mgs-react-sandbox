@@ -54,7 +54,7 @@ async function parseFitFileMetadata(file, userId) {
         try {
           // Process the data using FitDataProcessor
           const processor = new FitDataProcessor();
-          const processedData = processor.processFitFile(parsedData, userId);
+          const processedData = processor.processFitFile(parsedData, userId, file.name);
           
           // Extract basic metadata for compatibility
           const activity = processedData.activity;
