@@ -19,7 +19,8 @@ import { CalendarContextProvider } from "./pages/Calendar/context/CalendarContex
 import { UploadPage } from "./pages/UploadPage";
 import ActivityDetails from "./pages/ActivityDetails/ActivityDetails";
 import ActivityListPage from "./pages/ActivityDetails/ActivityListPage";
-import { ActivityDetailsContextProvider } from "./pages/ActivityDetails/context/ActivityDetailsContext";
+import { QueryClientProvider } from "./providers/QueryClientProvider";
+import ActivityDetailsProvider from "./pages/ActivityDetails/context/ActivityDetailsContext";
 
 // A layout for authenticated users
 const AuthenticatedLayout: React.FC = () => {
@@ -96,93 +97,105 @@ function App() {
   }
 
   return (
-    <ThemeProvider theme={currentTheme}>
-      <GlobalStyle />
-      <Router>
-        <AppWrapper>
-          <AppHeader toggleTheme={toggleTheme} themeMode={themeMode} />
-          <Routes>
-            <Route
-              path="/login"
-              element={user ? <Navigate to="/" replace /> : <LoginPage />}
-            />
+    <QueryClientProvider>
+      <ThemeProvider theme={themeMode === "light" ? lightTheme : darkTheme}>
+        <GlobalStyle />
+        <Router>
+          <AppWrapper>
+            <AppHeader toggleTheme={toggleTheme} themeMode={themeMode} />
+            <ContentWrapper>
+              <Routes>
+                <Route
+                  path="/login"
+                  element={user ? <Navigate to="/" replace /> : <LoginPage />}
+                />
 
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route
-                path="/"
-                element={
-                  <PageContainer>
-                    <TextBlock>
-                      This is your authenticated app content dashboard.
-                    </TextBlock>
-                    <TextBlock>
-                      Navigate to your <Link to="/profile">profile</Link> or
-                      check out the <Link to="/calendar">calendar</Link>.
-                    </TextBlock>
-                  </PageContainer>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <PageContainer>
-                    <ProfilePage />
-                  </PageContainer>
-                }
-              />
-              <Route
-                path="/home"
-                element={<PageContainer>Home Page (Protected)</PageContainer>}
-              />
-              <Route
-                path="/activities"
-                element={
-                  <PageContainer>
-                    <ActivityDetailsContextProvider>
-                      <ActivityListPage />
-                    </ActivityDetailsContextProvider>
-                  </PageContainer>
-                }
-              />
-              <Route
-                path="/activities/:activityId"
-                element={
-                  <PageContainer>
-                    <ActivityDetailsContextProvider>
-                      <ActivityDetails />
-                    </ActivityDetailsContextProvider>
-                  </PageContainer>
-                }
-              />
-              <Route
-                path="/upload"
-                element={
-                  <PageContainer>
-                    <UploadPage />
-                  </PageContainer>
-                }
-              />
-              <Route
-                path="/calendar"
-                element={
-                  <PageContainer className="calendar-page">
-                    <CalendarContextProvider>
-                      <CalendarPage />
-                    </CalendarContextProvider>
-                  </PageContainer>
-                }
-              />
-            </Route>
+                {/* Protected Routes */}
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <ActivityDetailsProvider>
+                        <Outlet />
+                      </ActivityDetailsProvider>
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route
+                    path="/"
+                    element={
+                      <PageContainer>
+                        <TextBlock>
+                          This is your authenticated app content dashboard.
+                        </TextBlock>
+                        <TextBlock>
+                          Navigate to your <Link to="/profile">profile</Link> or
+                          check out the <Link to="/calendar">calendar</Link>.
+                        </TextBlock>
+                      </PageContainer>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <PageContainer>
+                        <ProfilePage />
+                      </PageContainer>
+                    }
+                  />
+                  <Route
+                    path="/home"
+                    element={
+                      <PageContainer>Home Page (Protected)</PageContainer>
+                    }
+                  />
+                  <Route path="/activities">
+                    <Route
+                      index
+                      element={
+                        <PageContainer>
+                          <ActivityListPage />
+                        </PageContainer>
+                      }
+                    />
+                    <Route
+                      path=":activityId"
+                      element={
+                        <PageContainer>
+                          <ActivityDetails />
+                        </PageContainer>
+                      }
+                    />
+                  </Route>
+                  <Route
+                    path="/upload"
+                    element={
+                      <PageContainer>
+                        <UploadPage />
+                      </PageContainer>
+                    }
+                  />
+                  <Route
+                    path="/calendar"
+                    element={
+                      <PageContainer className="calendar-page">
+                        <CalendarContextProvider>
+                          <CalendarPage />
+                        </CalendarContextProvider>
+                      </PageContainer>
+                    }
+                  />
+                </Route>
 
-            <Route
-              path="*"
-              element={<PageContainer>Page Not Found</PageContainer>}
-            />
-          </Routes>
-        </AppWrapper>
-      </Router>
-    </ThemeProvider>
+                <Route
+                  path="*"
+                  element={<PageContainer>Page Not Found</PageContainer>}
+                />
+              </Routes>
+            </ContentWrapper>
+          </AppWrapper>
+        </Router>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

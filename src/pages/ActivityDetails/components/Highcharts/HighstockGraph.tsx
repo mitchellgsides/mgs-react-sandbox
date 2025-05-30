@@ -429,8 +429,6 @@ const HighstockGraph = () => {
     // dataGroupingConfig,
   ]);
 
-  console.log("xxx chartOptions2:", chartOptions2);
-
   if (!records || records.length === 0) {
     return (
       <Container>

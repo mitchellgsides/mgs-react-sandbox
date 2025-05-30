@@ -17,7 +17,7 @@ const ActivityDetails = () => {
     loading,
     error,
     records,
-    setRecords,
+    recordsLoading,
     selectedActivity,
     setSelectedActivity,
     deleteActivityById,
@@ -67,8 +67,6 @@ const ActivityDetails = () => {
     }
   }, [activityId, activities, selectedActivity?.id, setSelectedActivity]);
 
-  console.log("xxx selectedActivity:", selectedActivity);
-
   if (loading) {
     return (
       <Container>
@@ -104,21 +102,25 @@ const ActivityDetails = () => {
 
   return (
     <Container>
-      <BackLink
-        to="/activities"
-        onClick={() => {
-          setSelectedActivity(null);
-          setRecords(null);
-        }}
-      >
-        ← Back to Activities
-      </BackLink>
+      <BackLink to="/activities">← Back to Activities</BackLink>
 
       <Title>Activity Details</Title>
 
       <ChartSection>
         <ChartTitle>Workout Chart</ChartTitle>
-        <HighchartsGraph />
+        <ChartContainer>
+          {recordsLoading ? (
+            <LoadingContainer>
+              <LoadingText>Loading chart data...</LoadingText>
+            </LoadingContainer>
+          ) : records && records.length > 0 ? (
+            <HighchartsGraph />
+          ) : (
+            <NoDataContainer>
+              <NoDataText>No chart data available for this activity</NoDataText>
+            </NoDataContainer>
+          )}
+        </ChartContainer>
       </ChartSection>
 
       {/* Delete Confirmation Dialog */}
@@ -364,13 +366,6 @@ const RecordsCount = styled.div`
   opacity: 0.8;
 `;
 
-const LoadingText = styled.div`
-  text-align: center;
-  color: ${({ theme }) => theme.colors.text};
-  opacity: 0.7;
-  font-style: italic;
-`;
-
 const ErrorText = styled.div`
   color: ${({ theme }) => theme.colors.danger};
   background: ${({ theme }) => theme.colors.light};
@@ -506,9 +501,72 @@ const DialogButton = styled.button<DialogButtonProps>`
   }
 `;
 
-const ChartSection = styled.div`
-  width: 1000px;
-  margin-bottom: 20px;
+const ChartSection = styled.section`
+  margin: 2rem auto;
+  width: 100%;
+  max-width: 1800px;
+  padding: 0 20px;
+
+  @media (min-width: 2000px) {
+    max-width: 95%;
+  }
+`;
+
+const ChartContainer = styled.div`
+  width: 100%;
+  min-height: 600px;
+  position: relative;
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin: 20px 0;
+  padding: 30px;
+  overflow: hidden;
+
+  @media (max-width: 1200px) {
+    padding: 20px 15px;
+  }
+`;
+
+const LoadingContainer = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: 8px;
+`;
+
+const NoDataContainer = styled(LoadingContainer)`
+  background: ${({ theme }) => theme.colors.surface};
+`;
+
+const LoadingText = styled.p`
+  color: ${({ theme }) => theme.colors.text};
+  opacity: 0.7;
+  font-style: italic;
+  font-size: 1.1rem;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+`;
+
+const NoDataText = styled.p`
+  color: ${({ theme }) => theme.colors.text};
+  opacity: 0.6;
+  font-style: italic;
+  font-size: 1.1rem;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 100%;
 `;
 
 const ChartTitle = styled.h2`

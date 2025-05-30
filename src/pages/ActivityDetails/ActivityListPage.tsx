@@ -11,7 +11,6 @@ const ActivityListPage = () => {
     activities,
     loading,
     error,
-    records,
     setSelectedActivity,
     deleteActivityById,
     deleting,
@@ -19,8 +18,6 @@ const ActivityListPage = () => {
 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  console.log("xxx fetched records:", records);
 
   const formatDate = useCallback((timestamp: string): string => {
     try {

@@ -367,29 +367,62 @@ export const getActivity = async (
   activityId: string
 ): Promise<GetActivityResponse> => {
   try {
-    const { data, error } = await supabase
+    // First, get the activity
+    const { data: activity, error: activityError } = await supabase
       .from("activities")
       .select("*")
       .eq("id", activityId)
       .single();
 
-    if (error) {
+    if (activityError || !activity) {
       return {
         success: false,
-        error: `Failed to fetch activity: ${error.message}`,
+        error: activityError ? `Failed to fetch activity: ${activityError.message}` : "Activity not found",
       };
     }
 
-    if (!data) {
-      return {
-        success: false,
-        error: "Activity not found",
-      };
+    // Then, get all records for this activity in batches
+    const BATCH_SIZE = 1000;
+    let allRecords: ActivityRecord[] = [];
+    let hasMore = true;
+    let offset = 0;
+
+    while (hasMore) {
+      const { data: records, error: recordsError } = await supabase
+        .from("activity_records")
+        .select("*", { count: 'exact' })
+        .eq("activity_id", activityId)
+        .order("time", { ascending: true })
+        .range(offset, offset + BATCH_SIZE - 1);
+
+      if (recordsError) {
+        console.error("Error fetching activity records batch:", recordsError);
+        // If we have some records but hit an error, continue with what we have
+        hasMore = false;
+        continue;
+      }
+
+
+      if (records && records.length > 0) {
+        allRecords = [...allRecords, ...records];
+      }
+
+      // If we got fewer records than requested, we've reached the end
+      if (!records || records.length < BATCH_SIZE) {
+        hasMore = false;
+      } else {
+        offset += BATCH_SIZE;
+      }
     }
+
+    console.log(`Fetched ${allRecords.length} records for activity ${activityId}`);
 
     return {
       success: true,
-      data,
+      data: {
+        ...activity,
+        records: allRecords
+      }
     };
   } catch (error) {
     console.error("Get activity error:", error);

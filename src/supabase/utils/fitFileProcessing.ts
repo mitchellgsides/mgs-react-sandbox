@@ -223,8 +223,6 @@ class FitDataProcessor {
     // Calculate activity-level statistics from all records
     const activityStats = this.calculateActivityLevelStats(session.laps);
 
-    console.log("xxx session:", session);
-
     return {
       user_id: userId,
       activity_timestamp: activity.timestamp,

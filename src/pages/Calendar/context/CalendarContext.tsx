@@ -142,7 +142,6 @@ export const CalendarContextProvider: React.FC<CalendarProviderProps> = ({
         visibleWeeks.length
       );
       const activities = await fetchActivitiesForCalendar(user, visibleWeeks);
-      console.log("xxx activities:", activities);
 
       // Convert CalendarActivity to Workout format
       const workoutsFromActivities: Workout[] = activities.map(

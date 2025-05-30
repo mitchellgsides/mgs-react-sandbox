@@ -56,24 +56,21 @@ export const mgsChartOptions = (
   )[],
   theme: DefaultTheme
 ) => {
-  const minValues = seriesData.reduce((acc, series) => {
-    if (series && series.data.length > 0) {
-      const minValue = Math.min(...series.data.map((point) => point[1]));
-      acc[series.yAxis] = Math.min(acc[series.yAxis] || 0, minValue);
-    }
-    return acc;
-  }, {} as Record<string, number>);
+  // const minValues = seriesData.reduce((acc, series) => {
+  //   if (series && series.data.length > 0) {
+  //     const minValue = Math.min(...series.data.map((point) => point[1]));
+  //     acc[series.yAxis] = Math.min(acc[series.yAxis] || 0, minValue);
+  //   }
+  //   return acc;
+  // }, {} as Record<string, number>);
 
-  const maxValues = seriesData.reduce((acc, series) => {
-    if (series && series.data.length > 0) {
-      const maxValue = Math.max(...series.data.map((point) => point[1]));
-      acc[series.yAxis] = Math.max(acc[series.yAxis] || 0, maxValue);
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
-  console.log("xxx minValues:", minValues);
-  console.log("xxx maxValues:", maxValues);
+  // const maxValues = seriesData.reduce((acc, series) => {
+  //   if (series && series.data.length > 0) {
+  //     const maxValue = Math.max(...series.data.map((point) => point[1]));
+  //     acc[series.yAxis] = Math.max(acc[series.yAxis] || 0, maxValue);
+  //   }
+  //   return acc;
+  // }, {} as Record<string, number>);
 
   return {
     accessibility: {
@@ -86,39 +83,43 @@ export const mgsChartOptions = (
       animation: false,
       type: "area",
       ignoreHiddenSeries: true,
-      backgroundColor: {
-        linearGradient: { x1: 0, x2: 0, y1: 0, y2: 1 },
-        stops: [
-          [0, theme.colors.surface], // start
-          [0.4, theme.colors.background], // middle
-          [1, theme.colors.border], // end
-        ],
-      },
-      margin: [50, 0, 15, 0],
-      spacingTop: 0,
-      spacingRight: 0,
-      spacing: [0, 10, 0, 10],
+      backgroundColor: "transparent",
+      margin: [50, 40, 40, 80], // [top, right, bottom, left]
+      spacingTop: 10,
+      spacingRight: 20,
+      spacingBottom: 10,
+      spacingLeft: 10,
       style: {
-        fontFamily: theme.fonts.main,
+        fontFamily: theme.fonts.main || "inherit",
+      },
+      events: {
+        load: function (this: Highcharts.Chart) {
+          // Ensure the chart is responsive
+          const handleResize = () => {
+            this.reflow();
+          };
+          window.addEventListener("resize", handleResize);
+          return () => window.removeEventListener("resize", handleResize);
+        },
       },
       selectionMarkerFill: "rgba(54, 54, 54, 0.25)",
       panning: { enabled: true },
       panKey: "shift",
       mouseWheel: { enabled: false },
-      events: {
-        load: function () {
-          // Chart loaded - default reset button will be automatically shown when zoomed
-        },
-        // selection: function (this: any, event: any) {
-        //   console.log("Highstock selection event triggered:", event);
-        //   if (event.xAxis && event.xAxis[0]) {
-        //     const start = formatTime(event.xAxis[0].min);
-        //     const end = formatTime(event.xAxis[0].max);
-        //     setZoomInfo({ start, end });
-        //   }
-        //   return true; // Allow the zoom
-        // },
-      },
+      // events: {
+      //   load: function () {
+      //     // Chart loaded - default reset button will be automatically shown when zoomed
+      //   },
+      //   // selection: function (this: any, event: any) {
+      //   //   console.log("Highstock selection event triggered:", event);
+      //   //   if (event.xAxis && event.xAxis[0]) {
+      //   //     const start = formatTime(event.xAxis[0].min);
+      //   //     const end = formatTime(event.xAxis[0].max);
+      //   //     setZoomInfo({ start, end });
+      //   //   }
+      //   //   return true; // Allow the zoom
+      //   // },
+      // },
       zooming: {
         type: "x",
         resetButton: {
