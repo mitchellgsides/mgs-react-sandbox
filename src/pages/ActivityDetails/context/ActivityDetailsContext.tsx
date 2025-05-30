@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useState, useEffect, createContext } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useEffect,
+  createContext,
+} from "react";
 import type { ReactNode } from "react";
 import { useAuthContext } from "../../../contexts/Auth/useAuthContext";
 import type { Activity } from "../../../supabase/supabase.fitFiles";
@@ -11,7 +17,9 @@ import {
 
 export type { ActivityRecord };
 
-export const ActivityDetailsContext = createContext<ActivityDetailsContextType | undefined>(undefined);
+export const ActivityDetailsContext = createContext<
+  ActivityDetailsContextType | undefined
+>(undefined);
 
 export type ActivityDetailsProviderProps = {
   children: ReactNode;
@@ -55,6 +63,9 @@ export const ActivityDetailsProvider: React.FC<
   );
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  if (error) {
+    console.log("xxx error", error);
+  }
 
   // Fetch activity records using React Query
   const { data: records = [], isLoading: recordsLoading } = useActivityRecords(
@@ -80,7 +91,9 @@ export const ActivityDetailsProvider: React.FC<
       } else {
         // If selectedActivity exists but its ID doesn't match any activity in the list,
         // update it to the first activity in the list
-        const currentActivity = activities.find(a => a.id === selectedActivity.id);
+        const currentActivity = activities.find(
+          (a) => a.id === selectedActivity.id
+        );
         if (!currentActivity) {
           setSelectedActivity(activities[0]);
         } else if (currentActivity !== selectedActivity) {
@@ -90,15 +103,6 @@ export const ActivityDetailsProvider: React.FC<
       }
     }
   }, [activities, selectedActivity]);
-
-  // Actions
-  const refreshActivities = useCallback(() => {
-    refetchActivities();
-  }, [refetchActivities]);
-
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
 
   const deleteActivityById = useCallback(
     async (activityId: string) => {
