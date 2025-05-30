@@ -14,8 +14,12 @@ export interface CalendarActivity {
   sport?: string;
   total_distance?: number;
   avg_speed?: number;
+  max_speed?: number;
   avg_power?: number;
+  max_power?: number;
   avg_heart_rate?: number;
+  max_heart_rate?: number;
+  // For backward compatibility, distance maps to total_distance
   distance?: number;
 }
 
@@ -59,7 +63,21 @@ export const fetchActivitiesForCalendar = async (
 
     const { data, error } = await supabase
       .from("activities")
-      .select("*")
+      .select(
+        `
+        id,
+        activity_timestamp,
+        sport,
+        total_distance,
+        total_timer_time,
+        avg_speed,
+        max_speed,
+        avg_power,
+        max_power,
+        avg_heart_rate,
+        max_heart_rate
+      `
+      )
       .eq("user_id", user.id)
       .gte("activity_timestamp", startDate.toISOString())
       .lte("activity_timestamp", endDate.toISOString())
@@ -114,11 +132,25 @@ export const fetchActivitiesForCalendar = async (
         }
 
         if (activity.avg_power && activity.avg_power > 0) {
-          stats.push(`Avg Power: ${Math.round(activity.avg_power)}W`);
+          const powerText = `Avg Power: ${Math.round(activity.avg_power)}W`;
+          if (activity.max_power && activity.max_power > 0) {
+            stats.push(
+              `${powerText} (Max: ${Math.round(activity.max_power)}W)`
+            );
+          } else {
+            stats.push(powerText);
+          }
         }
 
         if (activity.avg_heart_rate && activity.avg_heart_rate > 0) {
-          stats.push(`Avg HR: ${Math.round(activity.avg_heart_rate)}bpm`);
+          const hrText = `Avg HR: ${Math.round(activity.avg_heart_rate)}bpm`;
+          if (activity.max_heart_rate && activity.max_heart_rate > 0) {
+            stats.push(
+              `${hrText} (Max: ${Math.round(activity.max_heart_rate)}bpm)`
+            );
+          } else {
+            stats.push(hrText);
+          }
         }
 
         if (stats.length > 0) {
@@ -135,8 +167,13 @@ export const fetchActivitiesForCalendar = async (
           sport: activity.sport,
           total_distance: activity.total_distance,
           avg_speed: activity.avg_speed,
+          max_speed: activity.max_speed,
           avg_power: activity.avg_power,
+          max_power: activity.max_power,
           avg_heart_rate: activity.avg_heart_rate,
+          max_heart_rate: activity.max_heart_rate,
+          // For backward compatibility
+          distance: activity.total_distance,
         };
       }
     );
@@ -164,7 +201,21 @@ export const fetchActivitiesForDateRange = async (
 
     const { data, error } = await supabase
       .from("activities")
-      .select("*")
+      .select(
+        `
+        id,
+        activity_timestamp,
+        sport,
+        total_distance,
+        total_timer_time,
+        avg_speed,
+        max_speed,
+        avg_power,
+        max_power,
+        avg_heart_rate,
+        max_heart_rate
+      `
+      )
       .eq("user_id", user.id)
       .gte("activity_timestamp", startDate.toISOString())
       .lte("activity_timestamp", endDate.toISOString())
@@ -210,8 +261,13 @@ export const fetchActivitiesForDateRange = async (
           sport: activity.sport,
           total_distance: activity.total_distance,
           avg_speed: activity.avg_speed,
+          max_speed: activity.max_speed,
           avg_power: activity.avg_power,
+          max_power: activity.max_power,
           avg_heart_rate: activity.avg_heart_rate,
+          max_heart_rate: activity.max_heart_rate,
+          // For backward compatibility
+          distance: activity.total_distance,
         };
       }
     );

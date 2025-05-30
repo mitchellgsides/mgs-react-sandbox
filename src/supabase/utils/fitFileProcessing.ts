@@ -58,6 +58,13 @@ interface ProcessedActivity {
   start_lng: number | null;
   end_lat: number | null;
   end_lng: number | null;
+  // Activity-level averages and maximums
+  avg_speed?: number | null;
+  max_speed?: number | null;
+  avg_power?: number | null;
+  max_power?: number | null;
+  avg_heart_rate?: number | null;
+  max_heart_rate?: number | null;
 }
 
 interface ProcessedLap {
@@ -186,6 +193,10 @@ class FitDataProcessor {
 
     // Calculate activity bounds
     const bounds = this.calculateActivityBounds(session.laps);
+
+    // Calculate activity-level statistics from all records
+    const activityStats = this.calculateActivityLevelStats(session.laps);
+
     console.log("xxx session:", session);
 
     return {
@@ -200,6 +211,13 @@ class FitDataProcessor {
       start_lng: bounds.start_lng,
       end_lat: bounds.end_lat,
       end_lng: bounds.end_lng,
+      // Include activity-level statistics
+      avg_speed: activityStats.avg_speed,
+      max_speed: activityStats.max_speed,
+      avg_power: activityStats.avg_power,
+      max_power: activityStats.max_power,
+      avg_heart_rate: activityStats.avg_heart_rate,
+      max_heart_rate: activityStats.max_heart_rate,
     };
   }
 
@@ -369,6 +387,70 @@ class FitDataProcessor {
       start_lng: firstValidLap?.start_position_long || null,
       end_lat: lastValidLap?.end_position_lat || null,
       end_lng: lastValidLap?.end_position_long || null,
+    };
+  }
+
+  /**
+   * Calculate activity-level statistics from all records across all laps
+   */
+  private calculateActivityLevelStats(laps: FitLap[]): {
+    avg_speed: number | null;
+    max_speed: number | null;
+    avg_power: number | null;
+    max_power: number | null;
+    avg_heart_rate: number | null;
+    max_heart_rate: number | null;
+  } {
+    // Collect all records from all laps
+    const allRecords: FitRecord[] = [];
+    for (const lap of laps) {
+      if (lap.records && lap.records.length > 0) {
+        allRecords.push(...lap.records);
+      }
+    }
+
+    if (allRecords.length === 0) {
+      return {
+        avg_speed: null,
+        max_speed: null,
+        avg_power: null,
+        max_power: null,
+        avg_heart_rate: null,
+        max_heart_rate: null,
+      };
+    }
+
+    // Extract valid values for each metric
+    const speeds = allRecords
+      .map((r) => r.speed)
+      .filter((s): s is number => s != null && s > 0);
+    const powers = allRecords
+      .map((r) => r.power)
+      .filter((p): p is number => p != null && p > 0);
+    const heartRates = allRecords
+      .map((r) => r.heart_rate)
+      .filter((hr): hr is number => hr != null && hr > 0);
+
+    return {
+      avg_speed:
+        speeds.length > 0
+          ? Math.round(
+              (speeds.reduce((a, b) => a + b, 0) / speeds.length) * 100
+            ) / 100
+          : null,
+      max_speed: speeds.length > 0 ? Math.max(...speeds) : null,
+      avg_power:
+        powers.length > 0
+          ? Math.round(powers.reduce((a, b) => a + b, 0) / powers.length)
+          : null,
+      max_power: powers.length > 0 ? Math.max(...powers) : null,
+      avg_heart_rate:
+        heartRates.length > 0
+          ? Math.round(
+              heartRates.reduce((a, b) => a + b, 0) / heartRates.length
+            )
+          : null,
+      max_heart_rate: heartRates.length > 0 ? Math.max(...heartRates) : null,
     };
   }
 

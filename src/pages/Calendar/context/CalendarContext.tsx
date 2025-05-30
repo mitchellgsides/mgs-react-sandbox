@@ -8,7 +8,7 @@ import React, {
   type ReactNode,
 } from "react";
 import { MAX_WEEKS, WEEKS_TO_LOAD } from "../CalendarPage";
-import { workouts as defaultWorkouts, type Workout } from "./fakeData";
+import { type Workout } from "./fakeData";
 import {
   fetchActivitiesForCalendar,
   type CalendarActivity,
@@ -60,7 +60,7 @@ export const CalendarContextProvider: React.FC<CalendarProviderProps> = ({
   const [selectedWorkout, setSelectedWorkout] = React.useState(
     null as Workout | null
   );
-  const [workouts, setWorkouts] = useState<Workout[]>(defaultWorkouts);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
 
@@ -156,8 +156,8 @@ export const CalendarContextProvider: React.FC<CalendarProviderProps> = ({
         })
       );
 
-      // For now, combine with fake data - you can remove this later
-      setWorkouts([...workoutsFromActivities, ...defaultWorkouts]);
+      // Use only real data from Supabase
+      setWorkouts(workoutsFromActivities);
 
       console.log(
         `Loaded ${workoutsFromActivities.length} activities from Supabase`
@@ -167,8 +167,8 @@ export const CalendarContextProvider: React.FC<CalendarProviderProps> = ({
       setActivitiesError(
         error instanceof Error ? error.message : "Failed to fetch activities"
       );
-      // Fall back to fake data on error
-      setWorkouts(defaultWorkouts);
+      // Clear workouts on error
+      setWorkouts([]);
     } finally {
       setIsLoadingActivities(false);
     }
