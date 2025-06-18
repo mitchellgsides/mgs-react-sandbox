@@ -4,6 +4,7 @@
 -- Add activity-level statistics fields to activities table
 ALTER TABLE activities 
 ADD COLUMN IF NOT EXISTS name TEXT,
+ADD COLUMN IF NOT EXISTS description TEXT,
 ADD COLUMN IF NOT EXISTS avg_speed DECIMAL(10,4),
 ADD COLUMN IF NOT EXISTS max_speed DECIMAL(10,4),
 ADD COLUMN IF NOT EXISTS avg_power INTEGER,
@@ -20,6 +21,7 @@ CREATE INDEX IF NOT EXISTS idx_activities_avg_hr ON activities(avg_heart_rate) W
 
 -- Add comments for documentation
 COMMENT ON COLUMN activities.name IS 'Human-readable activity name derived from filename';
+COMMENT ON COLUMN activities.description IS 'User-editable activity description';
 COMMENT ON COLUMN activities.avg_speed IS 'Average speed in meters per second';
 COMMENT ON COLUMN activities.max_speed IS 'Maximum speed in meters per second';
 COMMENT ON COLUMN activities.avg_power IS 'Average power in watts';

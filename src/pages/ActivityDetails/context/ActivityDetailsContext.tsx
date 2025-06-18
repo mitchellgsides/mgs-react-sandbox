@@ -14,6 +14,7 @@ import {
   useDeleteActivity,
   type ActivityRecord,
 } from "../../../hooks/api/useActivities";
+import { updateActivity } from "../../../supabase/supabase.fitFiles";
 
 export type { ActivityRecord };
 
@@ -34,6 +35,7 @@ export type ActivityDetailsContextType = {
   recordsLoading: boolean;
   selectedActivity: Activity | null;
   deleting: boolean;
+  updating: boolean;
 
   // Actions
   setSelectedActivity: (activity: Activity | null) => void;
@@ -42,6 +44,10 @@ export type ActivityDetailsContextType = {
   deleteActivityById: (
     activityId: string
   ) => Promise<{ success: boolean; error?: string }>;
+  updateActivityById: (
+    activityId: string,
+    updates: { name?: string; description?: string }
+  ) => Promise<{ success: boolean; data?: Activity; error?: string }>;
 };
 
 // Provider component that will wrap components needing access to the activity details context
@@ -62,6 +68,7 @@ export const ActivityDetailsProvider: React.FC<
     null
   );
   const [deleting, setDeleting] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   if (error) {
     console.log("xxx error", error);
@@ -132,6 +139,42 @@ export const ActivityDetailsProvider: React.FC<
     [deleteActivity, selectedActivity, activities, user?.id]
   );
 
+  const updateActivityById = useCallback(
+    async (
+      activityId: string,
+      updates: { name?: string; description?: string }
+    ) => {
+      if (!activityId)
+        return { success: false, error: "No activity ID provided" };
+      if (!user?.id) return { success: false, error: "User not authenticated" };
+
+      setUpdating(true);
+      try {
+        const result = await updateActivity(activityId, user.id, updates);
+
+        if (result.success && result.data) {
+          // Update the selected activity if it's the one we just updated
+          if (selectedActivity?.id === activityId) {
+            setSelectedActivity(result.data);
+          }
+
+          // Trigger refetch to update the activities list
+          refetchActivities();
+        }
+
+        return result;
+      } catch (err) {
+        const error =
+          err instanceof Error ? err.message : "Failed to update activity";
+        setError(error);
+        return { success: false, error };
+      } finally {
+        setUpdating(false);
+      }
+    },
+    [selectedActivity, user?.id, refetchActivities]
+  );
+
   const contextValue = useMemo<ActivityDetailsContextType>(
     () => ({
       activities,
@@ -141,10 +184,12 @@ export const ActivityDetailsProvider: React.FC<
       recordsLoading,
       selectedActivity,
       deleting,
+      updating,
       setSelectedActivity,
       refreshActivities: refetchActivities,
       clearError: () => setError(null),
       deleteActivityById,
+      updateActivityById,
     }),
     [
       activities,
@@ -153,9 +198,11 @@ export const ActivityDetailsProvider: React.FC<
       recordsLoading,
       selectedActivity,
       deleting,
+      updating,
       loading,
       refetchActivities,
       deleteActivityById,
+      updateActivityById,
     ]
   );
 

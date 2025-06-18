@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { DateTime } from "luxon";
 import { useActivityDetailsContext } from "./context/useActivityDetailsContext";
 import HighchartsGraph from "./components/Highcharts/HighchartsGraph";
+import { MdEdit } from "react-icons/md";
 // import HighstockGraph from "./components/Highcharts/HighstockGraph";
 
 const ActivityDetails = () => {
@@ -22,7 +23,16 @@ const ActivityDetails = () => {
     setSelectedActivity,
     deleteActivityById,
     deleting,
+    updateActivityById,
+    updating,
   } = useActivityDetailsContext();
+
+  // Edit states
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   // Handle delete button click
   const handleDeleteClick = useCallback(() => {
@@ -55,6 +65,69 @@ const ActivityDetails = () => {
   const handleCancelDelete = useCallback(() => {
     setConfirmDelete(false);
     setDeleteError(null);
+  }, []);
+
+  // Edit handlers
+  const handleEditTitle = useCallback(() => {
+    if (selectedActivity) {
+      setEditTitle(selectedActivity.name || "");
+      setEditingTitle(true);
+      setUpdateError(null);
+    }
+  }, [selectedActivity]);
+
+  const handleEditDescription = useCallback(() => {
+    if (selectedActivity) {
+      setEditDescription(selectedActivity.description || "");
+      setEditingDescription(true);
+      setUpdateError(null);
+    }
+  }, [selectedActivity]);
+
+  const handleSaveTitle = useCallback(async () => {
+    if (!selectedActivity) return;
+
+    try {
+      const result = await updateActivityById(selectedActivity.id, {
+        name: editTitle,
+      });
+
+      if (result.success) {
+        setEditingTitle(false);
+        setUpdateError(null);
+      } else {
+        setUpdateError(result.error || "Failed to update title");
+      }
+    } catch (err) {
+      console.error("Update title error:", err);
+      setUpdateError("An unexpected error occurred");
+    }
+  }, [selectedActivity, editTitle, updateActivityById]);
+
+  const handleSaveDescription = useCallback(async () => {
+    if (!selectedActivity) return;
+
+    try {
+      const result = await updateActivityById(selectedActivity.id, {
+        description: editDescription,
+      });
+
+      if (result.success) {
+        setEditingDescription(false);
+        setUpdateError(null);
+      } else {
+        setUpdateError(result.error || "Failed to update description");
+      }
+    } catch (err) {
+      console.error("Update description error:", err);
+      setUpdateError("An unexpected error occurred");
+    }
+  }, [selectedActivity, editDescription, updateActivityById]);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingTitle(false);
+    setEditingDescription(false);
+    setUpdateError(null);
   }, []);
 
   // Find the activity based on the URL parameter
@@ -104,7 +177,38 @@ const ActivityDetails = () => {
     <Container>
       <BackLink to="/activities">← Back to Activities</BackLink>
 
-      <Title>Activity Details</Title>
+      <TitleContainer>
+        {editingTitle ? (
+          <>
+            <TitleInput
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              placeholder="Enter activity name"
+              disabled={updating}
+              autoFocus
+              onBlur={handleSaveTitle}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveTitle()}
+            />
+            <EditActions>
+              <EditButton onClick={handleSaveTitle} disabled={updating}>
+                {updating ? "Saving..." : "Save"}
+              </EditButton>
+              <EditButton variant="secondary" onClick={handleCancelEdit}>
+                Cancel
+              </EditButton>
+            </EditActions>
+          </>
+        ) : (
+          <>
+            <Title>{selectedActivity.name || "Untitled Activity"}</Title>
+            <EditIconWrapper>
+              <EditIconButton onClick={handleEditTitle} aria-label="Edit title">
+                <MdEdit size={20} />
+              </EditIconButton>
+            </EditIconWrapper>
+          </>
+        )}
+      </TitleContainer>
 
       <ChartSection>
         <ChartTitle>Workout Chart</ChartTitle>
@@ -170,7 +274,42 @@ const ActivityDetails = () => {
           </ActivityActions>
         </ActivityHeader>
 
+        {/* Editable Description Section */}
+        <EditableSection>
+          <EditableLabel>Description</EditableLabel>
+          {editingDescription ? (
+            <EditInputContainer>
+              <EditTextarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Enter activity description"
+                disabled={updating}
+                rows={3}
+              />
+              <EditActions>
+                <EditButton onClick={handleSaveDescription} disabled={updating}>
+                  {updating ? "Saving..." : "Save"}
+                </EditButton>
+                <EditButton variant="secondary" onClick={handleCancelEdit}>
+                  Cancel
+                </EditButton>
+              </EditActions>
+            </EditInputContainer>
+          ) : (
+            <EditableValue>
+              <span>{selectedActivity.description || ""}</span>
+              <EditIconButton
+                onClick={handleEditDescription}
+                aria-label="Edit description"
+              >
+                <MdEdit />
+              </EditIconButton>
+            </EditableValue>
+          )}
+        </EditableSection>
+
         {deleteError && <ErrorText>{deleteError}</ErrorText>}
+        {updateError && <ErrorText>{updateError}</ErrorText>}
 
         <StatsGrid>
           {selectedActivity.total_distance && (
@@ -272,8 +411,49 @@ const BackLink = styled(Link)`
 
 const Title = styled.h1`
   color: ${({ theme }) => theme.colors.text};
-  margin-bottom: 20px;
+  margin: 0;
   font-family: ${({ theme }) => theme.fonts.heading};
+  font-size: 2rem;
+  font-weight: 600;
+`;
+
+// Title Container and Input styled components
+const TitleContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+`;
+
+const TitleInput = styled.input`
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid ${({ theme }) => theme.colors.border};
+  border-radius: 8px;
+  font-size: 1.8rem;
+  font-weight: 600;
+  font-family: ${({ theme }) => theme.fonts.heading};
+  background: ${({ theme }) => theme.colors.surface};
+  color: ${({ theme }) => theme.colors.text};
+  margin-right: 12px;
+
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const EditIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
 `;
 
 const ActivityCard = styled.div`
@@ -588,5 +768,127 @@ const DeleteButton = styled.button`
 
   &:hover {
     background: ${({ theme }) => theme.colors.danger};
+  }
+`;
+
+// Editable Fields Styled Components
+const EditableSection = styled.div`
+  margin-bottom: 24px;
+  padding: 16px;
+  background: ${({ theme }) => theme.colors.light};
+  border-radius: 8px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const EditableLabel = styled.div`
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.text};
+  opacity: 0.7;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+`;
+
+const EditableValue = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+
+  span {
+    font-size: 16px;
+    color: ${({ theme }) => theme.colors.text};
+    flex: 1;
+  }
+`;
+
+const EditIconButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.border};
+  }
+`;
+
+const EditInputContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const EditTextarea = styled.textarea`
+  padding: 8px 12px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 4px;
+  font-size: 16px;
+  background: ${({ theme }) => theme.colors.surface};
+  color: ${({ theme }) => theme.colors.text};
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const EditActions = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+`;
+
+interface EditButtonProps {
+  variant?: "primary" | "secondary";
+}
+
+const EditButton = styled.button<EditButtonProps>`
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  ${({ variant, theme }) => {
+    switch (variant) {
+      case "secondary":
+        return `
+          background: ${theme.colors.light};
+          color: ${theme.colors.text};
+          border: 1px solid ${theme.colors.border};
+          &:hover:not(:disabled) {
+            background: ${theme.colors.border};
+          }
+        `;
+      default:
+        return `
+          background: ${theme.colors.primary};
+          color: white;
+          &:hover:not(:disabled) {
+            background: ${theme.colors.primary};
+            opacity: 0.9;
+          }
+        `;
+    }
+  }}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `;

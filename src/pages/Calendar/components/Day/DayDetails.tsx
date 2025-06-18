@@ -1,5 +1,5 @@
 import { format, isSameDay } from "date-fns";
-import WeekSummary from "../WeekSummary";
+import WeekSummary, { DetailHeader } from "../WeekSummary";
 import WorkoutDetails from "./WorkoutDetails";
 import styled from "styled-components";
 import { useCalendarContext } from "../../context/CalendarContext";
@@ -86,18 +86,6 @@ const WorkoutList = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
-`;
-
-const DetailHeader = styled.div`
-  padding: ${({ theme }) => theme.spacing.md};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  background-color: ${({ theme }) => theme.colors.background};
-
-  h2,
-  h3 {
-    margin: 0;
-    font-size: 1.2rem;
-  }
 `;
 
 const DayContent = styled.div`

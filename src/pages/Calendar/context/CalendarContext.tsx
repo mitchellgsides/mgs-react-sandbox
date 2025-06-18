@@ -156,7 +156,7 @@ export const CalendarContextProvider: React.FC<CalendarProviderProps> = ({
       );
 
       // Use only real data from Supabase
-      setWorkouts(workoutsFromActivities);
+      setWorkouts([...workoutsFromActivities]);
 
       console.log(
         `Loaded ${workoutsFromActivities.length} activities from Supabase`

@@ -1,6 +1,7 @@
 import { useCalendarContext } from "../../context/CalendarContext";
 import styled from "styled-components";
 import TypeIcon from "../../shared-styles/TypeIcon";
+import { Link } from "react-router-dom";
 
 const WorkoutDetails = () => {
   const { selectedWorkout } = useCalendarContext();
@@ -14,7 +15,6 @@ const WorkoutDetails = () => {
                 <TypeIcon size={32} type={selectedWorkout.type} />
               </IconWrapper>
             )}
-            {/* <Title>{selectedWorkout.type || "Workout"}</Title> */}
             <Title>{selectedWorkout.name}</Title>
             <Date>
               {selectedWorkout.date.toLocaleDateString(undefined, {
@@ -33,11 +33,15 @@ const WorkoutDetails = () => {
 
             <DetailItem>
               <Label>Description:</Label>
-              <Value>
-                {selectedWorkout.description || "No description available"}
-              </Value>
+              <Value>{selectedWorkout.description || ""}</Value>
             </DetailItem>
           </DetailSection>
+
+          <ActionSection>
+            <DetailsLink to={`/activities/${selectedWorkout.id}`}>
+              View Full Details →
+            </DetailsLink>
+          </ActionSection>
         </>
       ) : (
         <EmptyState>Select a workout to view details</EmptyState>
@@ -110,7 +114,6 @@ const Label = styled.span`
 
 const Value = styled.div`
   padding: ${({ theme }) => theme.spacing.xs};
-  background: ${({ theme }) => `${theme.colors.text}10`};
   border-radius: 4px;
 `;
 
@@ -121,4 +124,33 @@ const EmptyState = styled.div`
   height: 100%;
   color: ${({ theme }) => `${theme.colors.text}60`};
   font-style: italic;
+`;
+
+const ActionSection = styled.div`
+  margin-top: ${({ theme }) => theme.spacing.md};
+  padding-top: ${({ theme }) => theme.spacing.sm};
+  border-top: 1px solid ${({ theme }) => `${theme.colors.text}20`};
+`;
+
+const DetailsLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  background: ${({ theme }) => theme.colors.primary};
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.primary};
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 `;

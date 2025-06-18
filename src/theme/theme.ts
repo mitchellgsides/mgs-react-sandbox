@@ -12,7 +12,7 @@ export const lightTheme: DefaultTheme = {
     dark: "#343a40",
     text: "#212529", // Main text
     background: "#ffffff", // Page background
-    surface: "#ffffff", // Card/Section background
+    surface: "#e9e9e9", // Card/Section background
     border: "#dee2e6",
   },
   fonts: {
@@ -54,7 +54,7 @@ export const darkTheme: DefaultTheme = {
     border: "#1c1c1c", // Border color (medium-dark gray)
     */
     background: "#1e1a1a", // Page background (slightly lighter dark gray)
-    surface: "#252525", // Card/Section background (lighter dark gray)
+    surface: "#1e1e1e", // Card/Section background (lighter dark gray)
     border: "#323232", // Border color (medium gray with slight contrast)
   },
   fonts: {

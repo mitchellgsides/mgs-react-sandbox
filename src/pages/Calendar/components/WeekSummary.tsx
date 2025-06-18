@@ -43,10 +43,9 @@ const WeekSummaryContent = styled.div`
   padding: ${({ theme }) => theme.spacing.md};
 `;
 
-const DetailHeader = styled.div`
-  padding: ${({ theme }) => theme.spacing.md};
+export const DetailHeader = styled.div`
+  padding: ${({ theme }) => theme.spacing.sm};
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  // background-color: ${({ theme }) => theme.colors.background};
   h2,
   h3 {
     margin: 0;

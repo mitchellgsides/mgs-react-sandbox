@@ -1,12 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { format, startOfWeek, addWeeks, subWeeks, isSameDay } from "date-fns";
-import {
-  IoChevronBack,
-  IoChevronForward,
-  IoRefresh,
-  IoWarning,
-} from "react-icons/io5";
+import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import DayDetails from "./components/Day/DayDetails";
 import WeekRow from "./components/WeekRow";
 import { useCalendarContext } from "./context/CalendarContext";
@@ -24,9 +19,6 @@ const CalendarPage: React.FC = () => {
     loadMoreWeeks,
     selectedDate,
     setSelectedDate,
-    isLoadingActivities,
-    activitiesError,
-    refreshActivities,
   } = useCalendarContext();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -43,7 +35,7 @@ const CalendarPage: React.FC = () => {
       initialWeeks.push(addWeeks(currentWeek, i));
     }
     setVisibleWeeks(initialWeeks);
-  }, [currentWeek]);
+  }, [currentWeek, setVisibleWeeks]);
 
   // Scroll to center only when component mounts
   useEffect(() => {
@@ -110,7 +102,7 @@ const CalendarPage: React.FC = () => {
         todayElement.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 50);
-  }, []);
+  }, [setSelectedDate, setVisibleWeeks]);
 
   // Track the current visible month for the header
   const [currentVisibleMonth, setCurrentVisibleMonth] = useState(
@@ -222,7 +214,7 @@ const CalendarPage: React.FC = () => {
         }
       }
     }
-  }, []);
+  }, [setVisibleWeeks]);
 
   const navigateNextMonth = useCallback(() => {
     // Similar to prev month but adding 4 weeks
@@ -292,7 +284,7 @@ const CalendarPage: React.FC = () => {
         }
       }
     }
-  }, []);
+  }, [setVisibleWeeks]);
 
   // Add scroll event to update visible month
   useEffect(() => {
@@ -311,16 +303,16 @@ const CalendarPage: React.FC = () => {
         <HeaderLeft>
           <MonthNavigationButtons>
             <NavButton onClick={navigatePrevMonth} aria-label="Previous month">
-              <IoChevronBack />
+              <IoChevronBack size={36} />
             </NavButton>
             <CalendarTitle>{currentVisibleMonth}</CalendarTitle>
             <NavButton onClick={navigateNextMonth} aria-label="Next month">
-              <IoChevronForward />
+              <IoChevronForward size={36} />
             </NavButton>
           </MonthNavigationButtons>
           <TodayButton onClick={scrollToToday}>Today</TodayButton>
         </HeaderLeft>
-        <ActivityStatus>
+        {/* <ActivityStatus>
           {isLoadingActivities && (
             <LoadingIndicator>
               <IoRefresh className="loading-icon" />
@@ -341,7 +333,7 @@ const CalendarPage: React.FC = () => {
               <span>Activities loaded</span>
             </SuccessIndicator>
           )}
-        </ActivityStatus>
+        </ActivityStatus> */}
       </CalendarHeader>
 
       <CalendarContent>
@@ -401,7 +393,7 @@ const CalendarHeader = styled.div`
   align-items: center;
   flex-direction: column;
   margin-bottom: 0; /* Remove margin to align perfectly with grid below */
-  padding: 8px;
+  padding: 4px;
 `;
 
 const CalendarTitle = styled.h1`
@@ -465,10 +457,10 @@ const MonthNavigationButtons = styled.div`
 const NavButton = styled.button`
   background-color: transparent;
   color: ${({ theme }) => theme.colors.text};
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  border: none; //1px solid ${({ theme }) => theme.colors.border};
   border-radius: 4px;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -477,7 +469,7 @@ const NavButton = styled.button`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: ${({ theme }) => theme.colors.background}50;
+    background-color: ${({ theme }) => theme.colors.surface};
   }
 `;
 
@@ -513,78 +505,6 @@ const CalendarContainer = styled.div`
 
 const Calendar = styled.div`
   width: 100%;
-`;
-
-const ActivityStatus = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 32px;
-  min-width: 180px;
-  justify-content: flex-end;
-
-  .loading-icon {
-    animation: spin 1s linear infinite;
-    color: ${({ theme }) => theme.colors.primary};
-  }
-
-  .error-icon {
-    color: ${({ theme }) => theme.colors.danger};
-  }
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-const LoadingIndicator = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 0.9rem;
-`;
-
-const ErrorIndicator = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: ${({ theme }) => theme.colors.danger};
-  font-size: 0.9rem;
-`;
-
-const SuccessIndicator = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: ${({ theme }) => theme.colors.success || theme.colors.primary};
-  font-size: 0.9rem;
-  opacity: 0.7;
-`;
-
-const RefreshButton = styled.button`
-  background: none;
-  border: 1px solid ${({ theme }) => theme.colors.danger};
-  color: ${({ theme }) => theme.colors.danger};
-  border-radius: 4px;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.danger};
-    color: white;
-  }
 `;
 
 export default CalendarPage;

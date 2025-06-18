@@ -68,6 +68,7 @@ export const fetchActivitiesForCalendar = async (
         id,
         activity_timestamp,
         name,
+        description,
         sport,
         total_distance,
         total_timer_time,
@@ -113,46 +114,8 @@ export const fetchActivitiesForCalendar = async (
           activity.name ||
           `${sport.charAt(0).toUpperCase() + sport.slice(1)} Activity`;
 
-        // Generate description with stats
-        let description = `${sport} activity`;
-        const stats: string[] = [];
-
-        if (activity.total_distance && activity.total_distance > 0) {
-          stats.push(
-            `Distance: ${(activity.total_distance / 1000).toFixed(1)}km`
-          );
-        }
-
-        if (activity.avg_speed && activity.avg_speed > 0) {
-          const speedKmh = (activity.avg_speed * 3.6).toFixed(1);
-          stats.push(`Avg Speed: ${speedKmh}km/h`);
-        }
-
-        if (activity.avg_power && activity.avg_power > 0) {
-          const powerText = `Avg Power: ${Math.round(activity.avg_power)}W`;
-          if (activity.max_power && activity.max_power > 0) {
-            stats.push(
-              `${powerText} (Max: ${Math.round(activity.max_power)}W)`
-            );
-          } else {
-            stats.push(powerText);
-          }
-        }
-
-        if (activity.avg_heart_rate && activity.avg_heart_rate > 0) {
-          const hrText = `Avg HR: ${Math.round(activity.avg_heart_rate)}bpm`;
-          if (activity.max_heart_rate && activity.max_heart_rate > 0) {
-            stats.push(
-              `${hrText} (Max: ${Math.round(activity.max_heart_rate)}bpm)`
-            );
-          } else {
-            stats.push(hrText);
-          }
-        }
-
-        if (stats.length > 0) {
-          description += ` • ${stats.join(" • ")}`;
-        }
+        // Use stored description or leave blank
+        const description = activity.description || "";
 
         return {
           id: activity.id,
@@ -203,6 +166,7 @@ export const fetchActivitiesForDateRange = async (
         id,
         activity_timestamp,
         name,
+        description,
         sport,
         total_distance,
         total_timer_time,
@@ -247,46 +211,8 @@ export const fetchActivitiesForDateRange = async (
           activity.name ||
           `${sport.charAt(0).toUpperCase() + sport.slice(1)} Activity`;
 
-        // Generate description with stats
-        let description = `${sport} activity`;
-        const stats: string[] = [];
-
-        if (activity.total_distance && activity.total_distance > 0) {
-          stats.push(
-            `Distance: ${(activity.total_distance / 1000).toFixed(1)}km`
-          );
-        }
-
-        if (activity.avg_speed && activity.avg_speed > 0) {
-          const speedKmh = (activity.avg_speed * 3.6).toFixed(1);
-          stats.push(`Avg Speed: ${speedKmh}km/h`);
-        }
-
-        if (activity.avg_power && activity.avg_power > 0) {
-          const powerText = `Avg Power: ${Math.round(activity.avg_power)}W`;
-          if (activity.max_power && activity.max_power > 0) {
-            stats.push(
-              `${powerText} (Max: ${Math.round(activity.max_power)}W)`
-            );
-          } else {
-            stats.push(powerText);
-          }
-        }
-
-        if (activity.avg_heart_rate && activity.avg_heart_rate > 0) {
-          const hrText = `Avg HR: ${Math.round(activity.avg_heart_rate)}bpm`;
-          if (activity.max_heart_rate && activity.max_heart_rate > 0) {
-            stats.push(
-              `${hrText} (Max: ${Math.round(activity.max_heart_rate)}bpm)`
-            );
-          } else {
-            stats.push(hrText);
-          }
-        }
-
-        if (stats.length > 0) {
-          description += ` • ${stats.join(" • ")}`;
-        }
+        // Use stored description or leave blank
+        const description = activity.description || "";
 
         return {
           id: activity.id,

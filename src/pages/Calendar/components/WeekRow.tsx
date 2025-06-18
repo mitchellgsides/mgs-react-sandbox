@@ -28,7 +28,7 @@ const WeekRow = ({ weekStart, isCurrentWeekRow }: WeekRowProps) => {
   // Calculate dynamic height based on workouts count
   // Base height + additional height per workout beyond 3 (since 3 fit comfortably)
   const getRowHeight = () => {
-    const baseHeight = isCurrentWeekRow ? 240 : 200;
+    const baseHeight = isCurrentWeekRow ? 240 : 200; // Increased base heights to accommodate text wrapping
 
     // Only grow if we have more than 3 workouts in any day of the week
     if (maxWorkoutsInWeek <= 3) {
@@ -36,8 +36,9 @@ const WeekRow = ({ weekStart, isCurrentWeekRow }: WeekRowProps) => {
     }
 
     // Add additional height for each workout beyond 3, up to a reasonable maximum
-    const additionalWorkouts = Math.min(maxWorkoutsInWeek - 3, 10); // Cap at 10 additional workouts
-    const additionalHeight = additionalWorkouts * 30; // 30px per additional workout
+    // Each workout item is approximately 32px (20px min-height + 6px padding + 2px margin + 4px buffer for wrapping)
+    const additionalWorkouts = Math.min(maxWorkoutsInWeek - 3, 12); // Cap at 12 additional workouts for narrow views
+    const additionalHeight = additionalWorkouts * 32; // 32px per additional workout (increased to account for text wrapping)
 
     return baseHeight + additionalHeight;
   };
@@ -77,4 +78,33 @@ const WeekRowContainer = styled.div<{
     $customHeight ? `${$customHeight}px` : isCurrentWeek ? "240px" : "200px"};
   background-color: ${({ isCurrentWeek, theme }) =>
     isCurrentWeek ? `${theme.colors.surface}` : "transparent"};
+
+  /* Responsive height adjustments for smaller screens - maintain proportions for text wrapping */
+  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+    height: ${({ $customHeight, isCurrentWeek }) =>
+      $customHeight
+        ? `${Math.max($customHeight * 0.9, 140)}px`
+        : isCurrentWeek
+        ? "200px"
+        : "170px"};
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+    height: ${({ $customHeight, isCurrentWeek }) =>
+      $customHeight
+        ? `${Math.max($customHeight * 0.85, 120)}px`
+        : isCurrentWeek
+        ? "180px"
+        : "150px"};
+  }
+
+  /* Extra small screens - still need adequate height for wrapped text */
+  @media (max-width: 480px) {
+    height: ${({ $customHeight, isCurrentWeek }) =>
+      $customHeight
+        ? `${Math.max($customHeight * 0.8, 100)}px`
+        : isCurrentWeek
+        ? "160px"
+        : "130px"};
+  }
 `;

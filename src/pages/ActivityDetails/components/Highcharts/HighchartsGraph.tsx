@@ -9,11 +9,11 @@ import { buildChartData } from "./buildChartData";
 
 const HighchartsGraph = () => {
   const { records, selectedActivity } = useActivityDetailsContext();
-  
+
   // Debug logs
   useEffect(() => {
-    console.log('HighchartsGraph - Selected Activity:', selectedActivity?.id);
-    console.log('HighchartsGraph - Records:', records?.length);
+    console.log("HighchartsGraph - Selected Activity:", selectedActivity?.id);
+    console.log("HighchartsGraph - Records:", records?.length);
   }, [records, selectedActivity]);
   const { profile } = useAuthContext();
   const [zoomInfo, setZoomInfo] = useState<{
@@ -89,6 +89,8 @@ const HighchartsGraph = () => {
 
     const { yAxes, series: seriesData } = buildChartData(records, currentTheme);
 
+    console.log("xxx zoomInfo", zoomInfo);
+
     return {
       chart: {
         type: "line",
@@ -110,12 +112,16 @@ const HighchartsGraph = () => {
           },
         },
         events: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          click: function (this: any, event: any) {
+          click: function (
+            this: Highcharts.Chart,
+            event: Highcharts.PointerEventObject
+          ) {
             console.log("Chart clicked:", event);
           },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          selection: function (this: any, event: any) {
+          selection: function (
+            this: Highcharts.Chart,
+            event: Highcharts.SelectEventObject
+          ) {
             console.log("Selection event triggered:", event);
             if (event.xAxis && event.xAxis[0]) {
               console.log(
@@ -150,6 +156,7 @@ const HighchartsGraph = () => {
         },
       },
       xAxis: {
+        min: 0,
         type: "datetime",
         title: {
           text: "Active Time",
@@ -158,17 +165,21 @@ const HighchartsGraph = () => {
           },
         },
         labels: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          formatter: function (this: any) {
-            return formatTime(this.value);
+          // eslint-isable-next-line @typescript-eslint/no-explicit-any
+          formatter: function (
+            this: Highcharts.AxisLabelsFormatterContextObject
+          ) {
+            return formatTime(this.value as number);
           },
           style: {
             color: currentTheme.colors.text,
           },
         },
         events: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          afterSetExtremes: function (this: any, event: any) {
+          afterSetExtremes: function (
+            this: Highcharts.Axis,
+            event: Highcharts.AxisSetExtremesEventObject
+          ) {
             console.log("afterSetExtremes event triggered:", event);
             console.log(
               "Event details - trigger:",
@@ -178,26 +189,29 @@ const HighchartsGraph = () => {
               "max:",
               event.max
             );
+            const extremes = this.getExtremes();
             console.log(
               "Axis details - dataMin:",
-              this.dataMin,
+              extremes.dataMin,
               "dataMax:",
-              this.dataMax
+              extremes.dataMax
             );
 
             if (event.min !== undefined && event.max !== undefined) {
-              // Always set zoom info when extremes change, unless it's the initial load
-              if (event.trigger && event.trigger !== "updatedData") {
+              // First check if we're back to full range - this is a reset
+              if (
+                event.min === extremes.dataMin &&
+                event.max === extremes.dataMax
+              ) {
+                console.log("Chart reset detected, clearing zoom info");
+                setZoomInfo(null);
+              }
+              // Only set zoom info when extremes change from user interaction, not on resets
+              else if (event.trigger && event.trigger !== "updatedData") {
                 const start = formatTime(event.min);
                 const end = formatTime(event.max);
                 console.log("Setting zoom info - start:", start, "end:", end);
                 setZoomInfo({ start, end });
-              }
-
-              // Clear zoom info if back to full range
-              if (event.min === this.dataMin && event.max === this.dataMax) {
-                console.log("Chart reset detected, clearing zoom info");
-                setZoomInfo(null);
               }
             }
           },
@@ -225,13 +239,14 @@ const HighchartsGraph = () => {
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: function (this: any) {
-          const timeStr = formatTime(this.x);
+          const timeStr = formatTime(this.x as number);
           let tooltipContent = `<b>Time: ${timeStr}</b><br/>`;
 
           if (this.points) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            this.points.forEach((point: any) => {
-              const suffix = point.series.tooltipOptions?.valueSuffix || "";
+            this.points.forEach((point: Highcharts.Point) => {
+              const suffix =
+                (point.series.options as Highcharts.SeriesLineOptions).tooltip
+                  ?.valueSuffix || "";
               tooltipContent += `<span style="color:${point.color}">${point.series.name}</span>: <b>${point.y}${suffix}</b><br/>`;
             });
           }
@@ -300,6 +315,7 @@ const HighchartsGraph = () => {
     setZoomInfo,
     smoothingSeconds,
     currentTheme,
+    zoomInfo,
   ]);
 
   if (!records || records.length === 0) {
@@ -343,11 +359,6 @@ const HighchartsGraph = () => {
             </SmoothingSelect>
           </ControlGroup>
           <ControlGroup>
-            <TestButton
-              onClick={() => setZoomInfo({ start: "1:23", end: "4:56" })}
-            >
-              Test Zoom
-            </TestButton>
             <ClearButton onClick={() => setZoomInfo(null)}>Clear</ClearButton>
           </ControlGroup>
         </ControlsSection>
@@ -559,21 +570,6 @@ const SmoothingSelect = styled.select`
   option {
     background: ${(props) => props.theme.colors.surface};
     color: ${(props) => props.theme.colors.text};
-  }
-`;
-
-const TestButton = styled.button`
-  padding: 6px 12px;
-  background: ${(props) => props.theme.colors.primary};
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background: ${(props) => props.theme.colors.secondary};
   }
 `;
 

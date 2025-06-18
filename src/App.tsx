@@ -210,14 +210,13 @@ const AppWrapper = styled.div`
 
 const ContentWrapper = styled.main`
   flex: 1;
-  padding: 20px;
 `;
 
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: ${({ theme }) => theme.spacing.lg};
+  padding: ${({ theme }) => theme.spacing.md};
   max-width: 1200px;
   margin: 0 auto;
 

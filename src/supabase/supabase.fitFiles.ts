@@ -26,6 +26,7 @@ export interface Activity {
   id: string;
   user_id: string;
   name?: string;
+  description?: string;
   sport?: string;
   activity_timestamp: string;
   total_distance?: number;
@@ -141,6 +142,12 @@ export interface GetUserStatsResponse {
   data: UserStats;
   period: string;
   sport: string | null;
+  error?: string;
+}
+
+export interface UpdateActivityResponse {
+  success: boolean;
+  data?: Activity;
   error?: string;
 }
 
@@ -377,7 +384,9 @@ export const getActivity = async (
     if (activityError || !activity) {
       return {
         success: false,
-        error: activityError ? `Failed to fetch activity: ${activityError.message}` : "Activity not found",
+        error: activityError
+          ? `Failed to fetch activity: ${activityError.message}`
+          : "Activity not found",
       };
     }
 
@@ -390,7 +399,7 @@ export const getActivity = async (
     while (hasMore) {
       const { data: records, error: recordsError } = await supabase
         .from("activity_records")
-        .select("*", { count: 'exact' })
+        .select("*", { count: "exact" })
         .eq("activity_id", activityId)
         .order("time", { ascending: true })
         .range(offset, offset + BATCH_SIZE - 1);
@@ -401,7 +410,6 @@ export const getActivity = async (
         hasMore = false;
         continue;
       }
-
 
       if (records && records.length > 0) {
         allRecords = [...allRecords, ...records];
@@ -415,14 +423,16 @@ export const getActivity = async (
       }
     }
 
-    console.log(`Fetched ${allRecords.length} records for activity ${activityId}`);
+    console.log(
+      `Fetched ${allRecords.length} records for activity ${activityId}`
+    );
 
     return {
       success: true,
       data: {
         ...activity,
-        records: allRecords
-      }
+        records: allRecords,
+      },
     };
   } catch (error) {
     console.error("Get activity error:", error);
@@ -633,6 +643,78 @@ export const deleteActivity = async (
     return {
       success: false,
       error: "Failed to delete activity: An unexpected error occurred",
+    };
+  }
+};
+
+export const updateActivity = async (
+  activityId: string,
+  userId: string,
+  updates: { name?: string; description?: string }
+): Promise<UpdateActivityResponse> => {
+  try {
+    console.log(`Updating activity ${activityId} for user ${userId}`, updates);
+
+    // Security check: ensure user owns this activity
+    const { data: activity, error: fetchError } = await supabase
+      .from("activities")
+      .select("user_id")
+      .eq("id", activityId)
+      .single();
+
+    if (fetchError) {
+      return {
+        success: false,
+        error: `Activity not found: ${fetchError.message}`,
+      };
+    }
+
+    if (activity.user_id !== userId) {
+      return {
+        success: false,
+        error: "Unauthorized: You can only update your own activities",
+      };
+    }
+
+    // Filter out undefined values to only update provided fields
+    const filteredUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([, value]) => value !== undefined)
+    );
+
+    if (Object.keys(filteredUpdates).length === 0) {
+      return {
+        success: false,
+        error: "No valid updates provided",
+      };
+    }
+
+    // Update the activity
+    const { data: updatedActivity, error: updateError } = await supabase
+      .from("activities")
+      .update(filteredUpdates)
+      .eq("id", activityId)
+      .eq("user_id", userId) // Double-check ownership
+      .select()
+      .single();
+
+    if (updateError) {
+      return {
+        success: false,
+        error: `Failed to update activity: ${updateError.message}`,
+      };
+    }
+
+    console.log(`Successfully updated activity ${activityId}`);
+
+    return {
+      success: true,
+      data: updatedActivity,
+    };
+  } catch (error) {
+    console.error("Update activity error:", error);
+    return {
+      success: false,
+      error: "Failed to update activity: An unexpected error occurred",
     };
   }
 };
