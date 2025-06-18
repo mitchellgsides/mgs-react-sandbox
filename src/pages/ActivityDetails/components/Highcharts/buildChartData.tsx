@@ -1,16 +1,33 @@
 import type { ActivityRecord } from "../../context/ActivityDetailsContext";
+import type { Activity } from "../../../../supabase/supabase.fitFiles";
 import type { DefaultTheme } from "styled-components";
+import {
+  isRunningActivity,
+  convertSpeedToPaceDecimal,
+  getSeriesOpacity,
+  formatPaceTooltip,
+  formatSpeedTooltip,
+} from "../utils/sportUtils";
 
 export const buildChartData = (
   records: ActivityRecord[],
-  theme: DefaultTheme
+  theme: DefaultTheme,
+  activity: Activity | null = null
 ) => {
+  const isRunning = isRunningActivity(activity);
+  // Note: isCycling detection available for future cycling-specific features
+
   const processedData = records.map((record) => ({
-    time: record.timer_time, // Using timer_time as x-axis (active time in seconds)
-    timeMs: record.timer_time * 1000, // Convert to milliseconds for Highcharts
+    time: record.timer_time || 0, // Using timer_time as x-axis (active time in seconds)
+    timeMs: (record.timer_time || 0) * 1000, // Convert to milliseconds for Highcharts
     heartRate: record.heart_rate || null,
     power: record.power || null,
     speed: record.speed ? record.speed : null,
+    // For running activities, convert speed to pace (decimal minutes per km)
+    pace:
+      record.speed && isRunning
+        ? convertSpeedToPaceDecimal(record.speed)
+        : null,
     cadence: record.cadence || null,
     distance: record.distance ? record.distance : null,
     altitude: record.altitude || null,
@@ -28,6 +45,10 @@ export const buildChartData = (
     .filter((d) => d.speed !== null)
     .map((d) => [d.timeMs, d.speed!]);
 
+  const paceData = processedData
+    .filter((d) => d.pace !== null)
+    .map((d) => [d.timeMs, d.pace!]);
+
   const cadenceData = processedData
     .filter((d) => d.cadence !== null)
     .map((d) => [d.timeMs, d.cadence!]);
@@ -38,14 +59,15 @@ export const buildChartData = (
 
   const altitudeData = processedData
     .filter((d) => d.altitude !== null)
-    .map((d) => [d.timeMs, d.altitude!]);
+    .map((d) => [d.timeMs, Math.round(d.altitude! * 1000)]);
 
   // HasData functions
   const hasHeartRateData = heartRateData.length > 0;
   const hasPowerData = powerData.length > 0;
   const hasSpeedData = speedData.length > 0;
+  const hasPaceData = paceData.length > 0;
   const hasCadenceData = cadenceData.length > 0;
-  const hasDistanceData = distanceData.length > 0;
+  // Note: hasDistanceData removed since distance is no longer plotted as a series
   const hasAltitudeData = altitudeData.length > 0;
 
   // Build y-axes dynamically based on available data
@@ -126,11 +148,12 @@ export const buildChartData = (
     });
   }
 
-  if (hasSpeedData) {
+  if (hasSpeedData || hasPaceData) {
+    const isShowingPace = isRunning && hasPaceData;
     yAxes.push({
-      id: "speed",
+      id: isShowingPace ? "pace" : "speed",
       title: {
-        text: "Speed (km/h)",
+        text: isShowingPace ? "Pace (min/km)" : "Speed (km/h)",
         style: { color: theme.colors.info },
       },
       labels: {
@@ -138,11 +161,13 @@ export const buildChartData = (
       },
       min: 0,
       gridLineColor: "transparent",
-      softMax: Math.max(...speedData.map((i) => i[1])),
-      //   opposite: false,
+      softMax: isShowingPace
+        ? Math.max(...paceData.map((i) => i[1]))
+        : Math.max(...speedData.map((i) => i[1])),
       plotLines: [],
       endOnTick: false,
-      //   offset: offsetCount > 1 ? Math.floor(offsetCount / 2) * 50 : 0,
+      // For pace, reverse the axis so faster times (lower values) are at the top
+      reversed: isShowingPace,
     });
   }
 
@@ -161,25 +186,6 @@ export const buildChartData = (
       offset: offsetCount > 0 ? offsetCount * 50 : 0,
     });
     offsetCount++;
-  }
-
-  if (hasDistanceData) {
-    yAxes.push({
-      id: "distance",
-      title: {
-        // text: "Distance (km)",
-        text: "",
-        style: { color: theme.colors.success },
-      },
-      labels: {
-        text: "",
-        style: { color: theme.colors.success },
-      },
-      gridLineColor: "transparent",
-      plotLines: [],
-      //   opposite: false,
-      //   offset: offsetCount > 1 ? Math.floor(offsetCount / 2) * 50 : 0,
-    });
   }
 
   if (hasAltitudeData) {
@@ -207,9 +213,12 @@ export const buildChartData = (
     groupPixelWidth: 1,
     units: [["second", [1, 5, 10, 30, 60]]],
   };
+
   return {
     config: dataGroupingConfig,
     yAxes: [...yAxes],
+    // Keep distance data available for summary/tooltip usage
+    distanceData,
     series: [
       hasHeartRateData && {
         name: "Heart Rate",
@@ -217,6 +226,7 @@ export const buildChartData = (
         yAxis: "heartrate",
         type: "line",
         color: theme.colors.danger,
+        opacity: getSeriesOpacity("Heart Rate", activity),
         tooltip: {
           valueSuffix: " bpm",
         },
@@ -227,46 +237,66 @@ export const buildChartData = (
         yAxis: "power",
         type: "line",
         color: theme.colors.warning,
+        opacity: getSeriesOpacity("Power", activity),
         tooltip: {
           valueSuffix: " w",
         },
       },
-      hasSpeedData && {
-        name: "Speed",
-        data: speedData,
-        yAxis: "speed",
-        type: "line",
-        color: theme.colors.info,
-        tooltip: {
-          valueSuffix: " km/h",
-        },
-      },
+      // Show pace for running activities, speed for cycling/others
+      isRunning && hasPaceData
+        ? {
+            name: "Pace",
+            data: paceData,
+            yAxis: "pace",
+            type: "line",
+            color: theme.colors.info,
+            opacity: getSeriesOpacity("Speed", activity), // Use "Speed" key for consistency
+            tooltip: {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter: function (this: any) {
+                return `<span style="color:${this.color}">${
+                  this.series.name
+                }</span>: <b>${formatPaceTooltip(this.y)}</b><br/>`;
+              },
+              useHTML: false,
+            },
+          }
+        : hasSpeedData && {
+            name: "Speed",
+            data: speedData,
+            yAxis: "speed",
+            type: "line",
+            color: theme.colors.info,
+            opacity: getSeriesOpacity("Speed", activity),
+            tooltip: {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter: function (this: any) {
+                return `<span style="color:${this.color}">${
+                  this.series.name
+                }</span>: <b>${formatSpeedTooltip(this.y)}</b><br/>`;
+              },
+              useHTML: false,
+            },
+          },
       hasCadenceData && {
         name: "Cadence",
         data: cadenceData,
         yAxis: "cadence",
         type: "line",
         color: theme.colors.secondary,
+        opacity: getSeriesOpacity("Cadence", activity),
         tooltip: {
           valueSuffix: " rpm",
         },
       },
-      hasDistanceData && {
-        name: "Distance",
-        data: distanceData,
-        yAxis: "distance",
-        type: "line",
-        color: theme.colors.success,
-        tooltip: {
-          valueSuffix: " km",
-        },
-      },
+      // Note: Distance series removed from chart display but data still available for summary/tooltip
       hasAltitudeData && {
         name: "Altitude",
         data: altitudeData, // Ensure no null values
         yAxis: "altitude",
         type: "area",
         color: `${theme.colors.light}4f`, // Adding transparency
+        opacity: getSeriesOpacity("Altitude", activity),
         tooltip: {
           valueSuffix: " m",
         },

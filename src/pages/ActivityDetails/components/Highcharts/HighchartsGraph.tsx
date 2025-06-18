@@ -6,6 +6,7 @@ import { useActivityDetailsContext } from "../../context/useActivityDetailsConte
 import { darkTheme, lightTheme } from "../../../../theme/theme";
 import { useAuthContext } from "../../../../contexts/Auth/useAuthContext";
 import { buildChartData } from "./buildChartData";
+import { isRunningActivity, convertSpeedToPace } from "../utils/sportUtils";
 
 const HighchartsGraph = () => {
   const { records, selectedActivity } = useActivityDetailsContext();
@@ -127,7 +128,11 @@ const HighchartsGraph = () => {
       return null;
     }
 
-    const { yAxes, series: seriesData } = buildChartData(records, currentTheme);
+    const {
+      yAxes,
+      series: seriesData,
+      distanceData,
+    } = buildChartData(records, currentTheme, selectedActivity);
 
     return {
       chart: {
@@ -294,6 +299,24 @@ const HighchartsGraph = () => {
             });
           }
 
+          // Add distance information to tooltip if available
+          if (distanceData && distanceData.length > 0) {
+            // Find the closest distance data point to the current time
+            const currentTime = this.x as number;
+            const closestDistance = distanceData.reduce((prev, curr) =>
+              Math.abs(curr[0] - currentTime) < Math.abs(prev[0] - currentTime)
+                ? curr
+                : prev
+            );
+            if (closestDistance) {
+              tooltipContent += `<span style="color:${
+                currentTheme.colors.success
+              }">Distance</span>: <b>${(closestDistance[1] / 1000).toFixed(
+                2
+              )} km</b><br/>`;
+            }
+          }
+
           return tooltipContent;
         },
       },
@@ -303,6 +326,17 @@ const HighchartsGraph = () => {
         layout: "horizontal",
         align: "right",
         verticalAlign: "bottom",
+        itemStyle: {
+          color: currentTheme.colors.text,
+          fontSize: "12px",
+          fontWeight: "normal",
+        },
+        itemHoverStyle: {
+          color: currentTheme.colors.text,
+        },
+        itemHiddenStyle: {
+          color: currentTheme.colors.light,
+        },
       },
       plotOptions: {
         series: {
@@ -508,7 +542,9 @@ const HighchartsGraph = () => {
                 </ValueCell>
               </DataRow>
               <DataRow>
-                <MetricCell>Speed</MetricCell>
+                <MetricCell>
+                  {isRunningActivity(selectedActivity) ? "Pace" : "Speed"}
+                </MetricCell>
                 <ValueCell>
                   {records.filter((r) => r.speed).length > 0
                     ? (() => {
@@ -519,28 +555,17 @@ const HighchartsGraph = () => {
                             0
                           ) / speedRecords.length;
 
-                        // Debug log to check the raw speed values
-                        console.log(
-                          "Speed debug - first few raw values:",
-                          speedRecords.slice(0, 5).map((r) => r.speed)
-                        );
-                        console.log(
-                          "Speed debug - average raw value:",
-                          avgSpeedMs
-                        );
-
-                        // Smart detection: if the raw average is > 15 m/s (54 km/h), it's likely already in km/h
-                        // since most cycling activities don't exceed 54 km/h average
-                        if (avgSpeedMs > 15) {
-                          console.log(
-                            "Speed debug - interpreting as km/h (no conversion)"
-                          );
-                          return `${avgSpeedMs.toFixed(1)} km/h`;
+                        if (isRunningActivity(selectedActivity)) {
+                          // For running, show pace
+                          return convertSpeedToPace(avgSpeedMs);
                         } else {
-                          console.log(
-                            "Speed debug - interpreting as m/s, converting to km/h"
-                          );
-                          return `${(avgSpeedMs * 3.6).toFixed(1)} km/h`;
+                          // For cycling/other, show speed
+                          // Smart detection: if the raw average is > 15 m/s (54 km/h), it's likely already in km/h
+                          if (avgSpeedMs > 15) {
+                            return `${avgSpeedMs.toFixed(1)} km/h`;
+                          } else {
+                            return `${(avgSpeedMs * 3.6).toFixed(1)} km/h`;
+                          }
                         }
                       })()
                     : "N/A"}
@@ -554,11 +579,16 @@ const HighchartsGraph = () => {
                             .map((r) => r.speed || 0)
                         );
 
-                        // Same logic for max speed
-                        if (maxSpeedMs > 15) {
-                          return `${maxSpeedMs.toFixed(1)} km/h`;
+                        if (isRunningActivity(selectedActivity)) {
+                          // For running, show best pace (which is actually minimum time)
+                          return convertSpeedToPace(maxSpeedMs);
                         } else {
-                          return `${(maxSpeedMs * 3.6).toFixed(1)} km/h`;
+                          // For cycling/other, show max speed
+                          if (maxSpeedMs > 15) {
+                            return `${maxSpeedMs.toFixed(1)} km/h`;
+                          } else {
+                            return `${(maxSpeedMs * 3.6).toFixed(1)} km/h`;
+                          }
                         }
                       })()
                     : "N/A"}
@@ -667,7 +697,7 @@ export default HighchartsGraph;
 
 // Styled Components
 const Container = styled.div`
-  width: 100%;
+  width: 95%;
   background: transparent;
   color: ${(props) => props.theme.colors.text};
   transition: background-color 0.3s ease, color 0.3s ease;

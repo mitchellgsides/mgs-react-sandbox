@@ -4,6 +4,10 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { DateTime } from "luxon";
 import { useActivityDetailsContext } from "./context/useActivityDetailsContext";
 import HighchartsGraph from "./components/Highcharts/HighchartsGraph";
+import {
+  isRunningActivity,
+  convertSpeedToPace,
+} from "./components/utils/sportUtils";
 import { MdEdit } from "react-icons/md";
 // import HighstockGraph from "./components/Highcharts/HighstockGraph";
 
@@ -332,18 +336,28 @@ const ActivityDetails = () => {
 
           {selectedActivity.avg_speed && (
             <StatItem>
-              <StatLabel>Avg Speed</StatLabel>
+              <StatLabel>
+                {isRunningActivity(selectedActivity) ? "Avg Pace" : "Avg Speed"}
+              </StatLabel>
               <StatValue>
-                {(selectedActivity.avg_speed * 3.6).toFixed(1)} km/h
+                {isRunningActivity(selectedActivity)
+                  ? `${convertSpeedToPace(selectedActivity.avg_speed)} min/km`
+                  : `${(selectedActivity.avg_speed * 3.6).toFixed(1)} km/h`}
               </StatValue>
             </StatItem>
           )}
 
           {selectedActivity.max_speed && (
             <StatItem>
-              <StatLabel>Max Speed</StatLabel>
+              <StatLabel>
+                {isRunningActivity(selectedActivity)
+                  ? "Best Pace"
+                  : "Max Speed"}
+              </StatLabel>
               <StatValue>
-                {(selectedActivity.max_speed * 3.6).toFixed(1)} km/h
+                {isRunningActivity(selectedActivity)
+                  ? `${convertSpeedToPace(selectedActivity.max_speed)} min/km`
+                  : `${(selectedActivity.max_speed * 3.6).toFixed(1)} km/h`}
               </StatValue>
             </StatItem>
           )}
