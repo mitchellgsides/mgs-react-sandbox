@@ -208,17 +208,14 @@ const AppWrapper = styled.div`
   min-height: 100vh;
 `;
 
-const ContentWrapper = styled.main`
-  flex: 1;
-`;
+const ContentWrapper = styled.main``;
 
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: ${({ theme }) => theme.spacing.md};
-  max-width: 1200px;
-  margin: 0 auto;
+  margin: 0 0;
 
   &.calendar-page {
     padding: ${({ theme }) => theme.spacing.sm};

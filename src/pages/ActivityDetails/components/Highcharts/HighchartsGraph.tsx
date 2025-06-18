@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import styled, { ThemeProvider } from "styled-components";
@@ -9,6 +9,7 @@ import { buildChartData } from "./buildChartData";
 
 const HighchartsGraph = () => {
   const { records, selectedActivity } = useActivityDetailsContext();
+  const chartRef = useRef<HighchartsReact.RefObject>(null);
 
   // Debug logs
   useEffect(() => {
@@ -20,12 +21,51 @@ const HighchartsGraph = () => {
     start: string;
     end: string;
   } | null>(null);
-  const [smoothingSeconds, setSmoothingSeconds] = useState<number>(1);
 
   // Reset state when activity changes
   useEffect(() => {
     setZoomInfo(null);
   }, [selectedActivity?.id]);
+
+  // Add resize handler to reflow chart when container size changes
+  useEffect(() => {
+    let resizeTimeout: NodeJS.Timeout;
+
+    const handleResize = () => {
+      // Debounce resize events to avoid excessive reflows
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (chartRef.current?.chart) {
+          chartRef.current.chart.reflow();
+        }
+      }, 150);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Also handle when the component mounts/updates with ResizeObserver for container changes
+    let resizeObserver: ResizeObserver | null = null;
+
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+
+      // Observe the chart container if it exists
+      const chartContainer = chartRef.current?.container?.current;
+      if (chartContainer) {
+        resizeObserver.observe(chartContainer);
+      }
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(resizeTimeout);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [records, selectedActivity]);
 
   // const currentTheme = profile?.theme === "dark" ? darkTheme : lightTheme;
   const currentTheme = profile?.theme === "dark" ? darkTheme : lightTheme;
@@ -89,20 +129,23 @@ const HighchartsGraph = () => {
 
     const { yAxes, series: seriesData } = buildChartData(records, currentTheme);
 
-    console.log("xxx zoomInfo", zoomInfo);
-
     return {
       chart: {
         type: "line",
+        reflow: true,
         height: 400,
         zoomType: "x",
         backgroundColor: currentTheme.colors.surface,
-        marginLeft: 60,
-        marginRight: 60,
+        marginLeft: 50,
+        marginRight: 20,
         plotBackgroundColor: null,
         plotBorderWidth: null,
         plotShadow: false,
         selectionMarkerFill: "rgba(0, 100, 200, 0.25)",
+        animation: false,
+        style: {
+          fontFamily: "inherit",
+        },
         resetZoomButton: {
           position: {
             align: "right",
@@ -150,7 +193,7 @@ const HighchartsGraph = () => {
         },
       },
       subtitle: {
-        text: `Drag to zoom in on time range • Data smoothing: ${smoothingSeconds}s`,
+        text: `Drag to zoom in on time range`,
         style: {
           color: currentTheme.colors.text,
         },
@@ -304,19 +347,31 @@ const HighchartsGraph = () => {
           },
         },
       },
+      responsive: {
+        rules: [
+          {
+            condition: {
+              maxWidth: 500,
+            },
+            chartOptions: {
+              chart: {
+                marginLeft: 35,
+                marginRight: 15,
+              },
+              legend: {
+                layout: "horizontal",
+                align: "center",
+                verticalAlign: "bottom",
+              },
+            },
+          },
+        ],
+      },
       credits: {
         enabled: false,
       },
     };
-  }, [
-    records,
-    selectedActivity,
-    formatTime,
-    setZoomInfo,
-    smoothingSeconds,
-    currentTheme,
-    zoomInfo,
-  ]);
+  }, [records, selectedActivity, formatTime, setZoomInfo, currentTheme]);
 
   if (!records || records.length === 0) {
     return (
@@ -341,8 +396,7 @@ const HighchartsGraph = () => {
   return (
     <ThemeProvider theme={currentTheme}>
       <Container>
-        {/* Smoothing Controls */}
-        <ControlsSection>
+        {/* <ControlsSection>
           <ControlGroup>
             <ControlLabel>Data Smoothing:</ControlLabel>
             <SmoothingSelect
@@ -361,47 +415,239 @@ const HighchartsGraph = () => {
           <ControlGroup>
             <ClearButton onClick={() => setZoomInfo(null)}>Clear</ClearButton>
           </ControlGroup>
-        </ControlsSection>
+        </ControlsSection> */}
         <ChartContainer>
-          <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+          <HighchartsReact
+            ref={chartRef}
+            highcharts={Highcharts}
+            options={chartOptions}
+            allowChartUpdate={true}
+            immutable={false}
+            updateArgs={[true, true, true]}
+          />
         </ChartContainer>
         <DataSummary>
-          <SummaryTitle>Data Summary</SummaryTitle>
-          <SummaryGrid>
-            <SummaryItem>
-              <SummaryLabel>Total Records:</SummaryLabel>
-              <SummaryValue>{records.length.toLocaleString()}</SummaryValue>
-            </SummaryItem>
-            <SummaryItem>
-              <SummaryLabel>Duration:</SummaryLabel>
-              <SummaryValue>
-                {Math.round(
-                  (records[records.length - 1]?.timer_time || 0) / 60
-                )}{" "}
-                min
-              </SummaryValue>
-            </SummaryItem>
-            <SummaryItem>
-              <SummaryLabel>Data Points with HR:</SummaryLabel>
-              <SummaryValue>
-                {records.filter((r) => r.heart_rate).length}
-              </SummaryValue>
-            </SummaryItem>
-            <SummaryItem>
-              <SummaryLabel>Data Points with Power:</SummaryLabel>
-              <SummaryValue>
-                {records.filter((r) => r.power).length}
-              </SummaryValue>
-            </SummaryItem>
-            <SummaryItem>
-              <SummaryLabel>Smoothing Applied:</SummaryLabel>
-              <SummaryValue>
-                {smoothingSeconds === 1
-                  ? "None"
-                  : `${smoothingSeconds}s moving average`}
-              </SummaryValue>
-            </SummaryItem>
-          </SummaryGrid>
+          <SummaryTitle>Activity Summary</SummaryTitle>
+          <SummaryTable>
+            <SummaryTableHeader>
+              <HeaderRow>
+                <MetricHeader>Metric</MetricHeader>
+                <ValueHeader>Average</ValueHeader>
+                <ValueHeader>Max</ValueHeader>
+              </HeaderRow>
+            </SummaryTableHeader>
+            <SummaryTableBody>
+              <DataRow>
+                <MetricCell>Duration</MetricCell>
+                <ValueCell>
+                  {records.length > 0 && records[records.length - 1].timer_time
+                    ? (() => {
+                        const totalSeconds =
+                          records[records.length - 1].timer_time || 0;
+                        const hours = Math.floor(totalSeconds / 3600);
+                        const minutes = Math.floor((totalSeconds % 3600) / 60);
+                        const seconds = Math.floor(totalSeconds % 60);
+
+                        if (hours > 0) {
+                          return `${hours}:${minutes
+                            .toString()
+                            .padStart(2, "0")}:${seconds
+                            .toString()
+                            .padStart(2, "0")}`;
+                        }
+                        return `${minutes}:${seconds
+                          .toString()
+                          .padStart(2, "0")}`;
+                      })()
+                    : "N/A"}
+                </ValueCell>
+                <MaxNotApplicable>-</MaxNotApplicable>
+              </DataRow>
+              <DataRow>
+                <MetricCell>Power</MetricCell>
+                <ValueCell>
+                  {records.filter((r) => r.power).length > 0
+                    ? `${Math.round(
+                        records
+                          .filter((r) => r.power)
+                          .reduce((sum, r) => sum + (r.power || 0), 0) /
+                          records.filter((r) => r.power).length
+                      )} W`
+                    : "N/A"}
+                </ValueCell>
+                <ValueCell>
+                  {records.filter((r) => r.power).length > 0
+                    ? `${Math.max(
+                        ...records
+                          .filter((r) => r.power)
+                          .map((r) => r.power || 0)
+                      )} W`
+                    : "N/A"}
+                </ValueCell>
+              </DataRow>
+              <DataRow>
+                <MetricCell>Cadence</MetricCell>
+                <ValueCell>
+                  {records.filter((r) => r.cadence).length > 0
+                    ? `${Math.round(
+                        records
+                          .filter((r) => r.cadence)
+                          .reduce((sum, r) => sum + (r.cadence || 0), 0) /
+                          records.filter((r) => r.cadence).length
+                      )} rpm`
+                    : "N/A"}
+                </ValueCell>
+                <ValueCell>
+                  {records.filter((r) => r.cadence).length > 0
+                    ? `${Math.max(
+                        ...records
+                          .filter((r) => r.cadence)
+                          .map((r) => r.cadence || 0)
+                      )} rpm`
+                    : "N/A"}
+                </ValueCell>
+              </DataRow>
+              <DataRow>
+                <MetricCell>Speed</MetricCell>
+                <ValueCell>
+                  {records.filter((r) => r.speed).length > 0
+                    ? (() => {
+                        const speedRecords = records.filter((r) => r.speed);
+                        const avgSpeedMs =
+                          speedRecords.reduce(
+                            (sum, r) => sum + (r.speed || 0),
+                            0
+                          ) / speedRecords.length;
+
+                        // Debug log to check the raw speed values
+                        console.log(
+                          "Speed debug - first few raw values:",
+                          speedRecords.slice(0, 5).map((r) => r.speed)
+                        );
+                        console.log(
+                          "Speed debug - average raw value:",
+                          avgSpeedMs
+                        );
+
+                        // Smart detection: if the raw average is > 15 m/s (54 km/h), it's likely already in km/h
+                        // since most cycling activities don't exceed 54 km/h average
+                        if (avgSpeedMs > 15) {
+                          console.log(
+                            "Speed debug - interpreting as km/h (no conversion)"
+                          );
+                          return `${avgSpeedMs.toFixed(1)} km/h`;
+                        } else {
+                          console.log(
+                            "Speed debug - interpreting as m/s, converting to km/h"
+                          );
+                          return `${(avgSpeedMs * 3.6).toFixed(1)} km/h`;
+                        }
+                      })()
+                    : "N/A"}
+                </ValueCell>
+                <ValueCell>
+                  {records.filter((r) => r.speed).length > 0
+                    ? (() => {
+                        const maxSpeedMs = Math.max(
+                          ...records
+                            .filter((r) => r.speed)
+                            .map((r) => r.speed || 0)
+                        );
+
+                        // Same logic for max speed
+                        if (maxSpeedMs > 15) {
+                          return `${maxSpeedMs.toFixed(1)} km/h`;
+                        } else {
+                          return `${(maxSpeedMs * 3.6).toFixed(1)} km/h`;
+                        }
+                      })()
+                    : "N/A"}
+                </ValueCell>
+              </DataRow>
+              <DataRow>
+                <MetricCell>Energy (kJ)</MetricCell>
+                <ValueCell>
+                  {(() => {
+                    const powerRecords = records.filter(
+                      (r) => r.power && r.timer_time
+                    );
+                    if (powerRecords.length === 0) return "N/A";
+
+                    let totalEnergy = 0;
+                    for (let i = 1; i < powerRecords.length; i++) {
+                      const timeDiff =
+                        (powerRecords[i].timer_time || 0) -
+                        (powerRecords[i - 1].timer_time || 0);
+                      const avgPower =
+                        ((powerRecords[i].power || 0) +
+                          (powerRecords[i - 1].power || 0)) /
+                        2;
+                      totalEnergy += avgPower * timeDiff; // Watts * seconds = Joules
+                    }
+                    return `${(totalEnergy / 1000).toFixed(1)} kJ`; // Convert to kilojoules
+                  })()}
+                </ValueCell>
+                <MaxNotApplicable>-</MaxNotApplicable>
+              </DataRow>
+              <SeparatorRow>
+                <td colSpan={3}></td>
+              </SeparatorRow>
+              <DataRow>
+                <MetricCell>Distance</MetricCell>
+                <ValueCell>
+                  {records.length > 0 && records[records.length - 1].distance
+                    ? `${(records[records.length - 1].distance! / 1000).toFixed(
+                        2
+                      )} km`
+                    : "N/A"}
+                </ValueCell>
+                <MaxNotApplicable>-</MaxNotApplicable>
+              </DataRow>
+              <DataRow>
+                <MetricCell>Elevation Gain</MetricCell>
+                <ValueCell>
+                  {(() => {
+                    const altitudeRecords = records.filter(
+                      (r) => r.altitude !== null && r.altitude !== undefined
+                    );
+                    if (altitudeRecords.length === 0) return "N/A";
+
+                    let totalGain = 0;
+                    for (let i = 1; i < altitudeRecords.length; i++) {
+                      const gain =
+                        (altitudeRecords[i].altitude || 0) -
+                        (altitudeRecords[i - 1].altitude || 0);
+                      if (gain > 0) totalGain += gain;
+                    }
+                    return `${Math.round(totalGain)} m`;
+                  })()}
+                </ValueCell>
+                <MaxNotApplicable>-</MaxNotApplicable>
+              </DataRow>
+              <DataRow>
+                <MetricCell>Average Elevation</MetricCell>
+                <ValueCell>
+                  {records.filter(
+                    (r) => r.altitude !== null && r.altitude !== undefined
+                  ).length > 0
+                    ? `${Math.round(
+                        records
+                          .filter(
+                            (r) =>
+                              r.altitude !== null && r.altitude !== undefined
+                          )
+                          .reduce((sum, r) => sum + (r.altitude || 0), 0) /
+                          records.filter(
+                            (r) =>
+                              r.altitude !== null && r.altitude !== undefined
+                          ).length
+                      )} m`
+                    : "N/A"}
+                </ValueCell>
+                <MaxNotApplicable>-</MaxNotApplicable>
+              </DataRow>
+            </SummaryTableBody>
+          </SummaryTable>
         </DataSummary>
         {zoomInfo && (
           <ZoomSummary>
@@ -421,29 +667,44 @@ export default HighchartsGraph;
 
 // Styled Components
 const Container = styled.div`
-  width: 70vw;
-  max-width: 1800px;
+  width: 100%;
   background: transparent;
   color: ${(props) => props.theme.colors.text};
   transition: background-color 0.3s ease, color 0.3s ease;
 `;
 
 const ChartContainer = styled.div`
-  margin-bottom: 20px;
+  width: 100%;
+  margin-bottom: 6px;
+  position: relative;
+  min-height: 400px;
 
-  /* Make sure the chart container takes full width */
+  /* Force the chart to be responsive */
+  & > div {
+    width: 100% !important;
+    position: relative !important;
+  }
+
+  /* Make sure the chart container takes full width and responds to size changes */
   .highcharts-container,
   .highcharts-root {
     width: 100% !important;
     height: 100% !important;
     overflow: visible !important;
+    max-width: none !important;
   }
 
-  /* Ensure the SVG inside takes full width */
+  /* Ensure the SVG inside takes full width and is responsive */
   .highcharts-container svg {
     width: 100% !important;
     height: 100% !important;
     overflow: visible !important;
+    max-width: none !important;
+  }
+
+  /* Handle chart reflow properly on resize */
+  .highcharts-container {
+    position: relative !important;
   }
 `;
 
@@ -456,54 +717,107 @@ const NoDataMessage = styled.div`
 
 const DataSummary = styled.div`
   border-top: 1px solid ${(props) => props.theme.colors.border};
-  padding-top: 20px;
-  border: 1px solid red;
+  padding-top: 6px;
 `;
 
 const SummaryTitle = styled.h3`
-  margin: 0 0 12px 0;
+  margin: 0 0 6px 0;
   color: ${(props) => props.theme.colors.text};
   font-size: 16px;
 `;
 
-const SummaryGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
+const SummaryTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  background: ${(props) => props.theme.colors.surface};
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
-const SummaryItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: ${(props) => props.theme.colors.background};
-  border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: 4px;
+const SummaryTableHeader = styled.thead`
+  background: ${(props) => props.theme.colors.primary};
 `;
 
-const SummaryLabel = styled.span`
-  color: ${(props) => props.theme.colors.text};
+const SummaryTableBody = styled.tbody``;
+
+const HeaderRow = styled.tr``;
+
+const DataRow = styled.tr`
+  &:nth-child(even) {
+    background: ${(props) => props.theme.colors.background};
+  }
+
+  &:hover {
+    background: ${(props) => props.theme.colors.light};
+  }
+`;
+
+const SeparatorRow = styled.tr`
+  height: 8px;
+  background: ${(props) => props.theme.colors.border};
+
+  td {
+    padding: 0;
+    border: none;
+  }
+`;
+
+const MetricHeader = styled.th`
+  padding: 12px 16px;
+  text-align: left;
+  color: white;
+  font-weight: 600;
   font-size: 14px;
-  opacity: 0.8;
 `;
 
-const SummaryValue = styled.span`
+const ValueHeader = styled.th`
+  padding: 12px 16px;
+  text-align: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  width: 120px;
+`;
+
+const MetricCell = styled.td`
+  padding: 12px 16px;
+  color: ${(props) => props.theme.colors.text};
+  font-weight: 500;
+  font-size: 14px;
+  border-bottom: 1px solid ${(props) => props.theme.colors.border};
+`;
+
+const ValueCell = styled.td`
+  padding: 12px 16px;
+  text-align: center;
   color: ${(props) => props.theme.colors.text};
   font-weight: 600;
   font-size: 14px;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  border-bottom: 1px solid ${(props) => props.theme.colors.border};
+`;
+
+const MaxNotApplicable = styled.td`
+  padding: 12px 16px;
+  text-align: center;
+  color: ${(props) => props.theme.colors.text};
+  opacity: 0.5;
+  font-size: 14px;
+  border-bottom: 1px solid ${(props) => props.theme.colors.border};
 `;
 
 const ZoomSummary = styled.div`
   background: ${(props) => props.theme.colors.background};
   border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: 6px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
 const ZoomTitle = styled.h4`
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   color: ${(props) => props.theme.colors.text};
   font-size: 14px;
   font-weight: 600;
@@ -511,7 +825,7 @@ const ZoomTitle = styled.h4`
 
 const ZoomTimeRange = styled.div`
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
 `;
 
@@ -524,69 +838,6 @@ const ZoomTime = styled.span`
   font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
   color: ${(props) => props.theme.colors.text};
   font-weight: 500;
-`;
-
-const ControlsSection = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 12px 16px;
-  background: ${(props) => props.theme.colors.background};
-  border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: 6px;
-  flex-wrap: wrap;
-  gap: 12px;
-`;
-
-const ControlGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const ControlLabel = styled.label`
-  font-size: 14px;
-  font-weight: 500;
-  color: ${(props) => props.theme.colors.text};
-  margin-right: 8px;
-`;
-
-const SmoothingSelect = styled.select`
-  padding: 6px 12px;
-  border: 1px solid ${(props) => props.theme.colors.border};
-  border-radius: 4px;
-  background: ${(props) => props.theme.colors.surface};
-  color: ${(props) => props.theme.colors.text};
-  font-size: 14px;
-  cursor: pointer;
-
-  &:focus {
-    outline: none;
-    border-color: ${(props) => props.theme.colors.primary};
-    box-shadow: 0 0 0 2px ${(props) => props.theme.colors.primary}25;
-  }
-
-  option {
-    background: ${(props) => props.theme.colors.surface};
-    color: ${(props) => props.theme.colors.text};
-  }
-`;
-
-const ClearButton = styled.button`
-  margin-left: 8px;
-  padding: 6px 12px;
-  background: ${(props) => props.theme.colors.danger};
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    opacity: 0.8;
-  }
 `;
 
 // const ThemeToggleButton = styled.button`

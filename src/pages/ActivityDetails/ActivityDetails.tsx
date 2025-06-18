@@ -362,21 +362,6 @@ const ActivityDetails = () => {
             </StatItem>
           )}
         </StatsGrid>
-
-        <RecordsSection>
-          <RecordsTitle>Activity Records</RecordsTitle>
-          {records ? (
-            <RecordsInfo>
-              {records.length > 0 ? (
-                <RecordsCount>{records.length} data points loaded</RecordsCount>
-              ) : (
-                <RecordsCount>No records found for this activity</RecordsCount>
-              )}
-            </RecordsInfo>
-          ) : (
-            <LoadingText>Loading activity records...</LoadingText>
-          )}
-        </RecordsSection>
       </ActivityCard>
     </Container>
   );
@@ -386,20 +371,17 @@ export default ActivityDetails;
 
 // Styled Components
 const Container = styled.div`
-  padding: 20px;
-  //   width: 1000px;
+  padding: 6px;
   display: flex;
+  width: 100%;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
   background-color: ${({ theme }) => theme.colors.background};
   color: ${({ theme }) => theme.colors.text};
 `;
 
 const BackLink = styled(Link)`
   display: inline-block;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   color: ${({ theme }) => theme.colors.primary};
   text-decoration: none;
   font-weight: 500;
@@ -421,8 +403,8 @@ const Title = styled.h1`
 const TitleContainer = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
   width: 100%;
+  max-width: none;
 `;
 
 const TitleInput = styled.input`
@@ -459,19 +441,19 @@ const EditIconWrapper = styled.div`
 const ActivityCard = styled.div`
   background: ${({ theme }) => theme.colors.surface};
   border-radius: 12px;
-  padding: 24px;
-  flex-grow: 1;
+  padding: 18px;
   width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 1px solid ${({ theme }) => theme.colors.border};
+  margin-bottom: 6px;
 `;
 
 const ActivityHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
@@ -492,15 +474,25 @@ const ActivitySport = styled.div`
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+
+  @media (min-width: 1200px) {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
 `;
 
 const StatItem = styled.div`
   background: ${({ theme }) => theme.colors.light};
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px;
   text-align: center;
   border: 1px solid ${({ theme }) => theme.colors.border};
 `;
@@ -521,31 +513,6 @@ const StatValue = styled.div`
   color: ${({ theme }) => theme.colors.text};
 `;
 
-const RecordsSection = styled.div`
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
-  padding-top: 20px;
-`;
-
-const RecordsTitle = styled.h3`
-  font-size: 18px;
-  color: ${({ theme }) => theme.colors.text};
-  margin-bottom: 12px;
-  font-family: ${({ theme }) => theme.fonts.heading};
-`;
-
-const RecordsInfo = styled.div`
-  background: ${({ theme }) => theme.colors.light};
-  border-radius: 6px;
-  padding: 12px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-`;
-
-const RecordsCount = styled.div`
-  font-size: 14px;
-  color: ${({ theme }) => theme.colors.text};
-  opacity: 0.8;
-`;
-
 const ErrorText = styled.div`
   color: ${({ theme }) => theme.colors.danger};
   background: ${({ theme }) => theme.colors.light};
@@ -560,31 +527,6 @@ const ActivityActions = styled.div`
   gap: 8px;
   align-items: center;
 `;
-
-// const DeleteButton = styled.button`
-//   background: ${({ theme }) => theme.colors.danger};
-//   color: white;
-//   border: none;
-//   border-radius: 4px;
-//   padding: 8px 12px;
-//   cursor: pointer;
-//   font-size: 14px;
-//   transition: all 0.2s ease;
-//   display: flex;
-//   align-items: center;
-//   justify-content: center;
-
-//   &:hover:not(:disabled) {
-//     background: ${({ theme }) => theme.colors.danger};
-//     opacity: 0.9;
-//     transform: scale(1.05);
-//   }
-
-//   &:disabled {
-//     opacity: 0.5;
-//     cursor: not-allowed;
-//   }
-// `;
 
 // Dialog styled components
 const DialogOverlay = styled.div`
@@ -682,14 +624,8 @@ const DialogButton = styled.button<DialogButtonProps>`
 `;
 
 const ChartSection = styled.section`
-  margin: 2rem auto;
   width: 100%;
-  max-width: 1800px;
-  padding: 0 20px;
-
-  @media (min-width: 2000px) {
-    max-width: 95%;
-  }
+  margin: 6px 0;
 `;
 
 const ChartContainer = styled.div`
@@ -699,12 +635,13 @@ const ChartContainer = styled.div`
   background: ${({ theme }) => theme.colors.surface};
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin: 20px 0;
-  padding: 30px;
+  padding: 6px;
   overflow: hidden;
+  border: 1px solid ${({ theme }) => theme.colors.border};
 
-  @media (max-width: 1200px) {
-    padding: 20px 15px;
+  @media (max-width: 768px) {
+    padding: 6px;
+    min-height: 500px;
   }
 `;
 
@@ -749,9 +686,9 @@ const NoDataText = styled.p`
   width: 100%;
 `;
 
-const ChartTitle = styled.h2`
+const ChartTitle = styled.h3`
   color: ${({ theme }) => theme.colors.text};
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   font-family: ${({ theme }) => theme.fonts.heading};
 `;
 
@@ -760,7 +697,7 @@ const DeleteButton = styled.button`
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 12px 24px;
+  padding: 12px;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
@@ -773,8 +710,8 @@ const DeleteButton = styled.button`
 
 // Editable Fields Styled Components
 const EditableSection = styled.div`
-  margin-bottom: 24px;
-  padding: 16px;
+  margin-bottom: 16px;
+  padding: 12px;
   background: ${({ theme }) => theme.colors.light};
   border-radius: 8px;
   border: 1px solid ${({ theme }) => theme.colors.border};

@@ -297,7 +297,7 @@ const DialogOverlay = styled.div`
 const DialogContent = styled.div`
   background: ${({ theme }) => theme.colors.surface};
   border-radius: 8px;
-  padding: 24px;
+  padding: 12px;
   max-width: 400px;
   width: 90%;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
