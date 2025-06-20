@@ -1,5 +1,9 @@
+import styled from "styled-components";
+
 const HomePage = () => {
-  return <div>Home Page, where I'm going to try to get all my data in...</div>;
+  return <TodaySummaryContainer>Today's Plan!</TodaySummaryContainer>;
 };
 
 export default HomePage;
+
+const TodaySummaryContainer = styled.div``;
