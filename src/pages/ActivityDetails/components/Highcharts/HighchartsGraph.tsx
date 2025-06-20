@@ -8,10 +8,12 @@ import { useAuthContext } from "../../../../contexts/Auth/useAuthContext";
 import { buildChartData } from "./buildChartData";
 // import { isRunningActivity, convertSpeedToPace } from "../utils/sportUtils";
 import { createTooltipConfig } from "./tooltipHelpers";
-import DataSummary from "./DataSummary";
+import DataSummary from "./DataSummaryMui";
+import ZoomDataSummary from "./ZoomDataSummary";
 
 const HighchartsGraph = () => {
-  const { records, selectedActivity, speedIsKmh } = useActivityDetailsContext();
+  const { records, selectedActivity, speedIsKmh, domain } =
+    useActivityDetailsContext();
   const chartRef = useRef<HighchartsReact.RefObject>(null);
 
   // Debug logs
@@ -134,7 +136,13 @@ const HighchartsGraph = () => {
       yAxes,
       series: seriesData,
       distanceData,
-    } = buildChartData(records, currentTheme, selectedActivity, speedIsKmh);
+    } = buildChartData(
+      records,
+      currentTheme,
+      selectedActivity,
+      speedIsKmh,
+      domain
+    );
 
     return {
       chart: {
@@ -189,9 +197,25 @@ const HighchartsGraph = () => {
                 "max:",
                 event.xAxis[0].max
               );
-              const start = formatTime(event.xAxis[0].min);
-              const end = formatTime(event.xAxis[0].max);
-              console.log("Formatted times - start:", start, "end:", end);
+              let start: string, end: string;
+              if (domain === "distance") {
+                // For distance domain, format as distance values
+                const startKm = event.xAxis[0].min / 1000;
+                const endKm = event.xAxis[0].max / 1000;
+                start =
+                  startKm < 1
+                    ? `${event.xAxis[0].min.toFixed(0)}m`
+                    : `${startKm.toFixed(2)}km`;
+                end =
+                  endKm < 1
+                    ? `${event.xAxis[0].max.toFixed(0)}m`
+                    : `${endKm.toFixed(2)}km`;
+              } else {
+                // For time domain, format as time values
+                start = formatTime(event.xAxis[0].min);
+                end = formatTime(event.xAxis[0].max);
+              }
+              console.log("Formatted values - start:", start, "end:", end);
               setZoomInfo({ start, end });
             } else {
               console.log("No xAxis data in selection event");
@@ -216,9 +240,9 @@ const HighchartsGraph = () => {
       },
       xAxis: {
         min: 0,
-        type: "datetime",
+        type: domain === "distance" ? "linear" : "datetime",
         title: {
-          text: "Active Time",
+          text: domain === "distance" ? "Distance (km)" : "Active Time",
           style: {
             color: currentTheme.colors.text,
           },
@@ -228,6 +252,12 @@ const HighchartsGraph = () => {
           formatter: function (
             this: Highcharts.AxisLabelsFormatterContextObject
           ) {
+            if (domain === "distance") {
+              const km = (this.value as number) / 1000;
+              return km < 1
+                ? `${(this.value as number).toFixed(0)}m`
+                : `${km.toFixed(1)}km`;
+            }
             return formatTime(this.value as number);
           },
           style: {
@@ -267,8 +297,24 @@ const HighchartsGraph = () => {
               }
               // Only set zoom info when extremes change from user interaction, not on resets
               else if (event.trigger && event.trigger !== "updatedData") {
-                const start = formatTime(event.min);
-                const end = formatTime(event.max);
+                let start: string, end: string;
+                if (domain === "distance") {
+                  // For distance domain, format as distance values
+                  const startKm = event.min / 1000;
+                  const endKm = event.max / 1000;
+                  start =
+                    startKm < 1
+                      ? `${event.min.toFixed(0)}m`
+                      : `${startKm.toFixed(2)}km`;
+                  end =
+                    endKm < 1
+                      ? `${event.max.toFixed(0)}m`
+                      : `${endKm.toFixed(2)}km`;
+                } else {
+                  // For time domain, format as time values
+                  start = formatTime(event.min);
+                  end = formatTime(event.max);
+                }
                 console.log("Setting zoom info - start:", start, "end:", end);
                 setZoomInfo({ start, end });
               }
@@ -278,7 +324,15 @@ const HighchartsGraph = () => {
       },
       yAxis: yAxes,
       series: seriesData,
-      tooltip: createTooltipConfig(distanceData, currentTheme, formatTime),
+      tooltip: createTooltipConfig(
+        distanceData,
+        currentTheme,
+        formatTime,
+        seriesData
+          .filter((s): s is Exclude<typeof s, false> => Boolean(s))
+          .map((s) => s.name), // Pass available series names
+        domain
+      ),
       legend: {
         enabled: true,
         floating: false,
@@ -322,6 +376,8 @@ const HighchartsGraph = () => {
               opacity: 1,
             },
           },
+          stickyTracking: false, // Allow tooltip to show anywhere on chart
+          findNearestPointBy: "x", // Find nearest point by x-axis value
         },
         line: {
           lineWidth: 1,
@@ -330,6 +386,7 @@ const HighchartsGraph = () => {
               enabled: false,
             },
           },
+          stickyTracking: false,
         },
         area: {
           lineWidth: 1,
@@ -338,6 +395,7 @@ const HighchartsGraph = () => {
               enabled: false,
             },
           },
+          stickyTracking: false,
         },
       },
       responsive: {
@@ -371,6 +429,7 @@ const HighchartsGraph = () => {
     setZoomInfo,
     currentTheme,
     speedIsKmh,
+    domain,
   ]);
 
   if (!records || records.length === 0) {
@@ -428,13 +487,16 @@ const HighchartsGraph = () => {
         </ChartContainer>
         <DataSummary />
         {zoomInfo && (
-          <ZoomSummary>
-            <ZoomTitle>Zoom Selection</ZoomTitle>
-            <ZoomTimeRange>
-              <ZoomTime>Start: {zoomInfo.start}</ZoomTime>
-              <ZoomTime>End: {zoomInfo.end}</ZoomTime>
-            </ZoomTimeRange>
-          </ZoomSummary>
+          <>
+            <ZoomSummary>
+              <ZoomTitle>Zoom Selection</ZoomTitle>
+              <ZoomTimeRange>
+                <ZoomTime>Start: {zoomInfo.start}</ZoomTime>
+                <ZoomTime>End: {zoomInfo.end}</ZoomTime>
+              </ZoomTimeRange>
+            </ZoomSummary>
+            <ZoomDataSummary zoomRange={zoomInfo} domain={domain} />
+          </>
         )}
       </Container>
     </ThemeProvider>

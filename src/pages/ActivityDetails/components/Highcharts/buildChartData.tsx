@@ -13,7 +13,8 @@ export const buildChartData = (
   records: ActivityRecord[],
   theme: DefaultTheme,
   activity: Activity | null = null,
-  speedIsKmh: boolean = false
+  speedIsKmh: boolean = false,
+  domain: "time" | "distance" = "time"
 ) => {
   const isRunning = isRunningActivity(activity);
   // Note: isCycling detection available for future cycling-specific features
@@ -21,6 +22,7 @@ export const buildChartData = (
   const processedData = records.map((record) => ({
     time: record.timer_time || 0, // Using timer_time as x-axis (active time in seconds)
     timeMs: (record.timer_time || 0) * 1000, // Convert to milliseconds for Highcharts
+    distance: record.distance ? record.distance * 1000 : null, // Convert to meters for consistency
     heartRate: record.heart_rate || null,
     power: record.power || null,
     speed: record.speed ? record.speed : null,
@@ -30,37 +32,50 @@ export const buildChartData = (
         ? convertSpeedToPaceDecimal(record.speed, speedIsKmh)
         : null,
     cadence: record.cadence || null,
-    distance: record.distance ? record.distance : null,
     altitude: record.altitude || null,
   }));
-  // Create series data arrays (no custom smoothing - let Highstock handle it)
-  const heartRateData = processedData
+
+  // Determine which axis to use for x-values
+  const getXValue = (d: (typeof processedData)[0]) => {
+    return domain === "distance" ? d.distance : d.timeMs;
+  };
+
+  // Filter out records without x-axis data
+  const validData = processedData.filter((d) => getXValue(d) !== null);
+
+  // Create series data arrays
+  const heartRateData = validData
     .filter((d) => d.heartRate !== null)
-    .map((d) => [d.timeMs, d.heartRate!]);
+    .map((d) => [getXValue(d)!, d.heartRate!]);
 
-  const powerData = processedData
+  const powerData = validData
     .filter((d) => d.power !== null)
-    .map((d) => [d.timeMs, d.power!]);
+    .map((d) => [getXValue(d)!, d.power!]);
 
-  const speedData = processedData
+  const speedData = validData
     .filter((d) => d.speed !== null)
-    .map((d) => [d.timeMs, d.speed!]);
+    .map((d) => [getXValue(d)!, d.speed!]);
 
-  const paceData = processedData
+  const paceData = validData
     .filter((d) => d.pace !== null)
-    .map((d) => [d.timeMs, d.pace!]);
+    .map((d) => [getXValue(d)!, d.pace!]);
 
-  const cadenceData = processedData
+  const cadenceData = validData
     .filter((d) => d.cadence !== null)
-    .map((d) => [d.timeMs, d.cadence!]);
+    .map((d) => [getXValue(d)!, d.cadence!]);
 
-  const distanceData = processedData
+  const distanceData = validData
     .filter((d) => d.distance !== null)
-    .map((d) => [d.timeMs, d.distance! * 1000]);
+    .map((d) => [getXValue(d)!, d.distance!]);
 
-  const altitudeData = processedData
+  // Create a distance-to-time mapping for tooltip usage when in distance mode
+  const distanceTimeData = validData
+    .filter((d) => d.distance !== null && d.timeMs !== null)
+    .map((d) => [d.distance!, d.timeMs!]);
+
+  const altitudeData = validData
     .filter((d) => d.altitude !== null)
-    .map((d) => [d.timeMs, Math.round(d.altitude! * 1000)]);
+    .map((d) => [getXValue(d)!, Math.round(d.altitude! * 1000)]);
 
   // HasData functions
   const hasHeartRateData = heartRateData.length > 0;
@@ -68,12 +83,13 @@ export const buildChartData = (
   const hasSpeedData = speedData.length > 0;
   const hasPaceData = paceData.length > 0;
   const hasCadenceData = cadenceData.length > 0;
-  // Note: hasDistanceData removed since distance is no longer plotted as a series
   const hasAltitudeData = altitudeData.length > 0;
 
   // Build y-axes dynamically based on available data
   const yAxes = [];
   let offsetCount = 0;
+
+  const ftp = 300;
 
   if (hasPowerData) {
     yAxes.push({
@@ -82,10 +98,10 @@ export const buildChartData = (
       plotLines: [
         {
           color: "white",
-          value: 300,
+          value: ftp,
           id: "FTP",
           label: {
-            text: `FTP ${300}w`,
+            text: `FTP ${ftp}w`,
             align: "right",
             x: -5,
             style: {
@@ -120,7 +136,7 @@ export const buildChartData = (
       },
       gridLineColor: "transparent",
       //   offset: offsetCount > 0 ? offsetCount * 50 : 0,
-      minRange: Math.max(...powerData.map((i) => i[1]), 450),
+      minRange: Math.max(...powerData.map((i) => i[1]), ftp * 1.5),
     });
     offsetCount++;
   }
@@ -218,8 +234,8 @@ export const buildChartData = (
   return {
     config: dataGroupingConfig,
     yAxes: [...yAxes],
-    // Keep distance data available for summary/tooltip usage
-    distanceData,
+    // For tooltip usage: pass distance-to-time mapping when in distance mode, otherwise time-to-distance
+    distanceData: domain === "distance" ? distanceTimeData : distanceData,
     series: [
       hasHeartRateData && {
         name: "Heart Rate",
@@ -296,7 +312,7 @@ export const buildChartData = (
       // Note: Distance series removed from chart display but data still available for summary/tooltip
       hasAltitudeData && {
         name: "Altitude",
-        data: altitudeData, // Ensure no null values
+        data: altitudeData,
         yAxis: "altitude",
         type: "area",
         color: `${theme.colors.light}4f`, // Adding transparency

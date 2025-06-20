@@ -36,6 +36,7 @@ export type ActivityDetailsContextType = {
   selectedActivity: Activity | null;
   deleting: boolean;
   updating: boolean;
+  domain: "time" | "distance";
 
   // Actions
   setSelectedActivity: (activity: Activity | null) => void;
@@ -48,6 +49,7 @@ export type ActivityDetailsContextType = {
     activityId: string,
     updates: { name?: string; description?: string }
   ) => Promise<{ success: boolean; data?: Activity; error?: string }>;
+  setDomain: (domain: "time" | "distance") => void;
   speedIsKmh: boolean;
 };
 
@@ -71,6 +73,7 @@ export const ActivityDetailsProvider: React.FC<
   const [deleting, setDeleting] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [domain, setDomain] = useState<"time" | "distance">("time");
   if (error) {
     console.log("xxx error", error);
   }
@@ -197,11 +200,13 @@ export const ActivityDetailsProvider: React.FC<
       selectedActivity,
       deleting,
       updating,
+      domain,
       setSelectedActivity,
       refreshActivities: refetchActivities,
       clearError: () => setError(null),
       deleteActivityById,
       updateActivityById,
+      setDomain,
       speedIsKmh,
     }),
     [
@@ -212,6 +217,7 @@ export const ActivityDetailsProvider: React.FC<
       selectedActivity,
       deleting,
       updating,
+      domain,
       loading,
       refetchActivities,
       deleteActivityById,

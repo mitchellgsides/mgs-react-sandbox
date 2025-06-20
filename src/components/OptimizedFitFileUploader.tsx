@@ -1,8 +1,12 @@
 // Example usage of optimized uploadFitFile function
 import React, { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import { useQueryClient } from "@tanstack/react-query";
 import { uploadFitFile } from "../supabase/utils/fitFileUpload";
 import { useAuthContext } from "../contexts/Auth/useAuthContext";
+import { ACTIVITIES_QUERY_KEY } from "../hooks/api/useActivities";
+import { CALENDAR_ACTIVITIES_QUERY_KEY } from "../hooks/api/useCalendar";
 
 // Styled Components
 const FitFileUploaderContainer = styled.div`
@@ -80,6 +84,25 @@ const UploadResult = styled.div<{ isSuccess: boolean }>`
   }
 `;
 
+const ViewButton = styled.button`
+  margin-top: 10px;
+  padding: 8px 16px;
+  background-color: ${({ theme }) => theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.primary}dd;
+  }
+
+  &:active {
+    background-color: ${({ theme }) => theme.colors.primary}aa;
+  }
+`;
+
 // Define proper result type interface
 interface UploadResult {
   success: boolean;
@@ -106,6 +129,8 @@ interface UploadProgress {
 
 export const OptimizedFitFileUploader: React.FC = () => {
   const { user } = useAuthContext();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [result, setResult] = useState<UploadResult | null>(null);
@@ -132,7 +157,24 @@ export const OptimizedFitFileUploader: React.FC = () => {
 
         if (uploadResult.success) {
           console.log("Upload successful:", uploadResult);
-          // You could redirect to activity view or show success message
+
+          // Invalidate React Query cache after successful upload
+          try {
+            await queryClient.invalidateQueries({
+              queryKey: [ACTIVITIES_QUERY_KEY],
+            });
+
+            await queryClient.invalidateQueries({
+              queryKey: [CALENDAR_ACTIVITIES_QUERY_KEY],
+            });
+
+            console.log("Cache invalidated successfully after upload");
+          } catch (cacheError) {
+            console.error(
+              "Failed to invalidate cache after upload:",
+              cacheError
+            );
+          }
         } else {
           console.error("Upload failed:", uploadResult.error);
         }
@@ -147,7 +189,7 @@ export const OptimizedFitFileUploader: React.FC = () => {
         setProgress(null);
       }
     },
-    [user]
+    [user, queryClient]
   );
 
   const getProgressMessage = (progress: UploadProgress) => {
@@ -207,6 +249,13 @@ export const OptimizedFitFileUploader: React.FC = () => {
               <p>Records stored: {result.stats?.recordsStored}</p>
               <p>Laps stored: {result.stats?.lapsStored}</p>
               {result.filePath && <p>File path: {result.filePath}</p>}
+              {result.activity_id && (
+                <ViewButton
+                  onClick={() => navigate(`/activities/${result.activity_id}`)}
+                >
+                  View Activity
+                </ViewButton>
+              )}
             </div>
           ) : (
             <div>

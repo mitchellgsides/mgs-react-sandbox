@@ -5,24 +5,30 @@ import {
   Route,
   Navigate,
   Outlet,
-  Link,
 } from "react-router-dom";
 import styled, { ThemeProvider } from "styled-components"; // Import styled
-import LoginPage from "./pages/LoginPage";
-import ProfilePage from "./pages/ProfilePage";
-import CalendarPage from "./pages/Calendar/CalendarPage";
-import AppHeader from "./components/AppHeader";
+import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import LoginPageMui from "./pages/LoginPageMui";
+import ProfilePageMui from "./pages/ProfilePageMui";
+import {
+  CalendarPage,
+  CalendarPageMui,
+  CalendarContextProvider,
+} from "./pages/Calendar";
+import AppHeader from "./components/AppHeaderMui";
 import { lightTheme, darkTheme } from "./theme/theme";
+import { lightMuiTheme, darkMuiTheme } from "./theme/muiTheme";
 import GlobalStyle from "./theme/GlobalStyle";
 import { useAuthContext } from "./contexts/Auth/useAuthContext";
-import { CalendarContextProvider } from "./pages/Calendar/context/CalendarContext";
-import { UploadPage } from "./pages/UploadPage";
-import ActivityDetails from "./pages/ActivityDetails/ActivityDetails";
-import ActivityListPage from "./pages/ActivityDetails/ActivityListPage";
+
+import { UploadPage } from "./pages/UploadPageMui";
+import ActivityDetails from "./pages/ActivityDetails/ActivityDetailsMui";
+import ActivityListPage from "./pages/ActivityDetails/ActivityListPageMui";
 import { QueryClientProvider } from "./providers/QueryClientProvider";
 import ActivityDetailsProvider from "./pages/ActivityDetails/context/ActivityDetailsContext";
 import LoadingSpinner from "./components/LoadingSpinner";
-import HomePage from "./pages/HomePage";
+import HomePageMui from "./pages/HomePageMui";
 
 // A layout for authenticated users
 const AuthenticatedLayout: React.FC = () => {
@@ -87,120 +93,135 @@ function App() {
   };
 
   const currentTheme = themeMode === "light" ? lightTheme : darkTheme;
+  const currentMuiTheme = themeMode === "light" ? lightMuiTheme : darkMuiTheme;
 
   if (isAuthLoading && !user && window.location.pathname !== "/login") {
     return (
-      <ThemeProvider theme={currentTheme}>
-        <GlobalStyle />
-        <Router>
-          <AppWrapper>
-            <AppHeader toggleTheme={toggleTheme} themeMode={themeMode} />
-            <LoadingContainer>
-              <LoadingSpinner />
-            </LoadingContainer>
-          </AppWrapper>
-        </Router>
-      </ThemeProvider>
+      <MuiThemeProvider theme={currentMuiTheme}>
+        <ThemeProvider theme={currentTheme}>
+          <CssBaseline />
+          <GlobalStyle />
+          <Router>
+            <AppWrapper>
+              <AppHeader toggleTheme={toggleTheme} themeMode={themeMode} />
+              <LoadingContainer>
+                <LoadingSpinner />
+              </LoadingContainer>
+            </AppWrapper>
+          </Router>
+        </ThemeProvider>
+      </MuiThemeProvider>
     );
   }
 
   return (
     <QueryClientProvider>
-      <ThemeProvider theme={themeMode === "light" ? lightTheme : darkTheme}>
-        <GlobalStyle />
-        <Router>
-          <AppWrapper>
-            <AppHeader toggleTheme={toggleTheme} themeMode={themeMode} />
-            <ContentWrapper>
-              <Routes>
-                <Route
-                  path="/login"
-                  element={user ? <Navigate to="/" replace /> : <LoginPage />}
-                />
+      <MuiThemeProvider theme={currentMuiTheme}>
+        <ThemeProvider theme={themeMode === "light" ? lightTheme : darkTheme}>
+          <CssBaseline />
+          <GlobalStyle />
+          <Router>
+            <AppWrapper>
+              <AppHeader toggleTheme={toggleTheme} themeMode={themeMode} />
+              <ContentWrapper>
+                <Routes>
+                  <Route
+                    path="/login"
+                    element={
+                      user ? <Navigate to="/" replace /> : <LoginPageMui />
+                    }
+                  />
 
-                {/* Protected Routes */}
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <ActivityDetailsProvider>
-                        <Outlet />
-                      </ActivityDetailsProvider>
-                    </ProtectedRoute>
-                  }
-                >
+                  {/* Protected Routes */}
                   <Route
-                    path="/"
                     element={
-                      <PageContainer>
-                        <HomePage />
-                        <TextBlock>
-                          Navigate to your <Link to="/profile">profile</Link> or
-                          check out the <Link to="/calendar">calendar</Link>.
-                        </TextBlock>
-                      </PageContainer>
+                      <ProtectedRoute>
+                        <ActivityDetailsProvider>
+                          <Outlet />
+                        </ActivityDetailsProvider>
+                      </ProtectedRoute>
                     }
-                  />
-                  <Route
-                    path="/profile"
-                    element={
-                      <PageContainer>
-                        <ProfilePage />
-                      </PageContainer>
-                    }
-                  />
-                  <Route
-                    path="/home"
-                    element={
-                      <PageContainer>Home Page (Protected)</PageContainer>
-                    }
-                  />
-                  <Route path="/activities">
+                  >
                     <Route
-                      index
+                      path="/"
                       element={
                         <PageContainer>
-                          <ActivityListPage />
+                          <HomePageMui />
                         </PageContainer>
                       }
                     />
                     <Route
-                      path=":activityId"
+                      path="/profile"
                       element={
                         <PageContainer>
-                          <ActivityDetails />
+                          <ProfilePageMui />
+                        </PageContainer>
+                      }
+                    />
+                    <Route
+                      path="/home"
+                      element={
+                        <PageContainer>Home Page (Protected)</PageContainer>
+                      }
+                    />
+                    <Route path="/activities">
+                      <Route
+                        index
+                        element={
+                          <PageContainer>
+                            <ActivityListPage />
+                          </PageContainer>
+                        }
+                      />
+                      <Route
+                        path=":activityId"
+                        element={
+                          <PageContainer>
+                            <ActivityDetails />
+                          </PageContainer>
+                        }
+                      />
+                    </Route>
+                    <Route
+                      path="/upload"
+                      element={
+                        <PageContainer>
+                          <UploadPage />
+                        </PageContainer>
+                      }
+                    />
+                    <Route
+                      path="/calendar"
+                      element={
+                        <PageContainer className="calendar-page">
+                          <CalendarContextProvider>
+                            <CalendarPage />
+                          </CalendarContextProvider>
+                        </PageContainer>
+                      }
+                    />
+                    <Route
+                      path="/calendar-mui"
+                      element={
+                        <PageContainer className="calendar-page">
+                          <CalendarContextProvider>
+                            <CalendarPageMui />
+                          </CalendarContextProvider>
                         </PageContainer>
                       }
                     />
                   </Route>
-                  <Route
-                    path="/upload"
-                    element={
-                      <PageContainer>
-                        <UploadPage />
-                      </PageContainer>
-                    }
-                  />
-                  <Route
-                    path="/calendar"
-                    element={
-                      <PageContainer className="calendar-page">
-                        <CalendarContextProvider>
-                          <CalendarPage />
-                        </CalendarContextProvider>
-                      </PageContainer>
-                    }
-                  />
-                </Route>
 
-                <Route
-                  path="*"
-                  element={<PageContainer>Page Not Found</PageContainer>}
-                />
-              </Routes>
-            </ContentWrapper>
-          </AppWrapper>
-        </Router>
-      </ThemeProvider>
+                  <Route
+                    path="*"
+                    element={<PageContainer>Page Not Found</PageContainer>}
+                  />
+                </Routes>
+              </ContentWrapper>
+            </AppWrapper>
+          </Router>
+        </ThemeProvider>
+      </MuiThemeProvider>
     </QueryClientProvider>
   );
 }
@@ -227,22 +248,6 @@ const PageContainer = styled.div`
     padding: ${({ theme }) => theme.spacing.sm};
     max-width: 100%;
     width: 100%;
-  }
-`;
-
-const TextBlock = styled.p`
-  margin-bottom: 1rem;
-  font-size: 1.1rem;
-  line-height: 1.5;
-  color: ${({ theme }) => theme.colors.text};
-  text-align: center;
-
-  a {
-    color: ${({ theme }) => theme.colors.primary};
-    text-decoration: none;
-    &:hover {
-      text-decoration: underline;
-    }
   }
 `;
 

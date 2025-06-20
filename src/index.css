@@ -1,3 +1,6 @@
+/* Import fonts that match your theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
+
 /* Base styles that don't conflict with the theme */
 :root {
   /* These settings enhance text rendering */
@@ -20,9 +23,6 @@ html, body {
   min-height: 100vh;
   width: 100%;
 }
-
-/* Import fonts that match your theme */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
 
 /* Note: Your styled-components GlobalStyle handles most styling,
    this file only includes minimal resets and imports */

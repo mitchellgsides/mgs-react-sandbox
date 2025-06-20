@@ -1,8 +1,18 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
+import {
+  Container,
+  Typography,
+  IconButton,
+  Button,
+  Box,
+  Paper,
+  Alert,
+  CircularProgress,
+} from "@mui/material";
+import { ChevronLeft, ChevronRight, Today, Refresh } from "@mui/icons-material";
 import styled from "styled-components";
 import { format, startOfWeek, addWeeks, subWeeks, isSameDay } from "date-fns";
-import { IoChevronBack, IoChevronForward } from "react-icons/io5";
-import DayDetails from "./components/Day/DayDetails";
+import DayDetailsMui from "./components/Day/DayDetailsMui";
 import WeekRow from "./components/WeekRow";
 import { useCalendarContext } from "./context/CalendarContext";
 
@@ -10,7 +20,7 @@ import { useCalendarContext } from "./context/CalendarContext";
 export const MAX_WEEKS = 20; // Maximum number of weeks to keep in memory
 export const WEEKS_TO_LOAD = 5; // Number of weeks to load at a time
 
-const CalendarPage: React.FC = () => {
+const CalendarPageMui: React.FC = () => {
   const {
     visibleWeeks,
     setVisibleWeeks,
@@ -19,6 +29,9 @@ const CalendarPage: React.FC = () => {
     loadMoreWeeks,
     selectedDate,
     setSelectedDate,
+    isLoadingActivities,
+    activitiesError,
+    refreshActivities,
   } = useCalendarContext();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -298,108 +311,147 @@ const CalendarPage: React.FC = () => {
   }, [updateVisibleMonth]);
 
   return (
-    <PageContainer>
-      <CalendarHeader>
-        <HeaderLeft>
-          <MonthNavigationButtons>
-            <NavButton onClick={navigatePrevMonth} aria-label="Previous month">
-              <IoChevronBack size={36} />
-            </NavButton>
-            <CalendarTitle>{currentVisibleMonth}</CalendarTitle>
-            <NavButton onClick={navigateNextMonth} aria-label="Next month">
-              <IoChevronForward size={36} />
-            </NavButton>
-          </MonthNavigationButtons>
-          <TodayButton onClick={scrollToToday}>This Week</TodayButton>
-        </HeaderLeft>
-        {/* <ActivityStatus>
-          {isLoadingActivities && (
-            <LoadingIndicator>
-              <IoRefresh className="loading-icon" />
-              <span>Loading activities...</span>
-            </LoadingIndicator>
-          )}
-          {activitiesError && (
-            <ErrorIndicator>
-              <IoWarning className="error-icon" />
-              <span>Error loading activities</span>
-              <RefreshButton onClick={() => refreshActivities()}>
-                <IoRefresh />
-              </RefreshButton>
-            </ErrorIndicator>
-          )}
-          {!isLoadingActivities && !activitiesError && (
-            <SuccessIndicator>
-              <span>Activities loaded</span>
-            </SuccessIndicator>
-          )}
-        </ActivityStatus> */}
-      </CalendarHeader>
+    <Container
+      maxWidth="xl"
+      sx={{ px: 1, height: "100vh", display: "flex", flexDirection: "column" }}
+    >
+      <Paper
+        elevation={3}
+        sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+      >
+        {/* Calendar Header with MUI Components */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            p: 2,
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {/* Month Navigation */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <IconButton
+                onClick={navigatePrevMonth}
+                aria-label="Previous month"
+                color="primary"
+              >
+                <ChevronLeft />
+              </IconButton>
 
-      <CalendarContent>
-        <DayTitles>
-          {[
-            "Sunday",
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-          ].map((day) => (
-            <DayTitleItem key={day}>{day}</DayTitleItem>
-          ))}
-        </DayTitles>
-        <CalendarContainer ref={scrollContainerRef} onScroll={handleScroll}>
-          <Calendar ref={calendarRef}>
-            {visibleWeeks.map((weekStart) => {
-              const isCurrentWeekRow = isSameDay(
-                startOfWeek(today, { weekStartsOn: 0 }),
-                weekStart
-              );
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{ minWidth: 200, textAlign: "center" }}
+              >
+                {currentVisibleMonth}
+              </Typography>
 
-              return (
-                <WeekRow
-                  isCurrentWeekRow={isCurrentWeekRow}
-                  key={weekStart.toISOString()}
-                  weekStart={weekStart}
-                />
-              );
-            })}
-          </Calendar>
-        </CalendarContainer>
+              <IconButton
+                onClick={navigateNextMonth}
+                aria-label="Next month"
+                color="primary"
+              >
+                <ChevronRight />
+              </IconButton>
+            </Box>
 
-        {selectedDate && <DayDetails />}
-      </CalendarContent>
-    </PageContainer>
+            <Button
+              variant="contained"
+              startIcon={<Today />}
+              onClick={scrollToToday}
+              sx={{ ml: 2 }}
+            >
+              This Week
+            </Button>
+          </Box>
+
+          {/* Activity Status with MUI Components */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {isLoadingActivities && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <CircularProgress size={20} />
+                <Typography variant="body2">Loading activities...</Typography>
+              </Box>
+            )}
+
+            {activitiesError && (
+              <Alert
+                severity="error"
+                action={
+                  <IconButton
+                    color="inherit"
+                    size="small"
+                    onClick={() => refreshActivities()}
+                  >
+                    <Refresh fontSize="inherit" />
+                  </IconButton>
+                }
+              >
+                Error loading activities
+              </Alert>
+            )}
+
+            {!isLoadingActivities && !activitiesError && (
+              <Typography variant="body2" color="success.main">
+                Activities loaded
+              </Typography>
+            )}
+          </Box>
+        </Box>
+
+        {/* CalendarContent - PRESERVED AS REQUESTED */}
+        <CalendarContent>
+          {/* DayTitles - PRESERVED AS REQUESTED */}
+          <DayTitles>
+            {[
+              "Sunday",
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday",
+            ].map((day) => (
+              <DayTitleItem key={day}>{day}</DayTitleItem>
+            ))}
+          </DayTitles>
+
+          <CalendarContainer ref={scrollContainerRef} onScroll={handleScroll}>
+            <Calendar ref={calendarRef}>
+              {visibleWeeks.map((weekStart) => {
+                const isCurrentWeekRow = isSameDay(
+                  startOfWeek(today, { weekStartsOn: 0 }),
+                  weekStart
+                );
+
+                return (
+                  <WeekRow
+                    isCurrentWeekRow={isCurrentWeekRow}
+                    key={weekStart.toISOString()}
+                    weekStart={weekStart}
+                  />
+                );
+              })}
+            </Calendar>
+          </CalendarContainer>
+
+          {selectedDate && <DayDetailsMui />}
+        </CalendarContent>
+      </Paper>
+    </Container>
   );
 };
 
-// Styled components
-const PageContainer = styled.div`
+// PRESERVED STYLED COMPONENTS - DayTitles and CalendarContent as requested
+const CalendarContent = styled.div`
   display: flex;
   flex-direction: column;
-  height: 100%;
-  width: 100%;
-  max-width: 1800px; /* Further increased from 1600px to maximize browser width usage */
-  margin: 0 auto;
-  padding: ${({ theme }) =>
-    theme.spacing.xs}; /* Further reduced from sm to xs */
-`;
-
-const CalendarHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-direction: column;
-  margin-bottom: 0; /* Remove margin to align perfectly with grid below */
-  padding: 4px;
-`;
-
-const CalendarTitle = styled.h1`
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 const DayTitles = styled.div`
@@ -425,60 +477,6 @@ const DayTitleItem = styled.div`
   }
 `;
 
-const TodayButton = styled.button`
-  background-color: ${({ theme }) => theme.colors.primary};
-  color: ${({ theme }) => theme.colors.light};
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.primary};
-  }
-`;
-
-const HeaderLeft = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing.md};
-  width: 100%;
-`;
-
-const MonthNavigationButtons = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
-`;
-
-const NavButton = styled.button`
-  background-color: transparent;
-  color: ${({ theme }) => theme.colors.text};
-  border: none; //1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 4px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.surface};
-  }
-`;
-
-const CalendarContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 100px);
-`;
-
 const CalendarContainer = styled.div`
   flex: 1;
   overflow-y: auto;
@@ -487,7 +485,8 @@ const CalendarContainer = styled.div`
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
   background-color: ${({ theme }) => theme.colors.background};
-  max-height: 45vh;
+  min-height: 300px;
+  max-height: 50vh;
   &::-webkit-scrollbar {
     width: 8px;
   }
@@ -507,4 +506,4 @@ const Calendar = styled.div`
   width: 100%;
 `;
 
-export default CalendarPage;
+export default CalendarPageMui;

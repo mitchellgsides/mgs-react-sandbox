@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { useAuthContext } from "../contexts/Auth/useAuthContext";
-import { darkTheme } from "../theme/theme";
 import type { Profile } from "../supabase/supabase.auth";
+import { darkTheme } from "../theme/theme";
 import Button from "../lib/components/Button";
 
 // OAuth Icon Components
@@ -62,12 +62,12 @@ const LoginPage: React.FC = () => {
     useState<Profile["theme"]>("dark");
 
   const {
+    signUp,
     signInWithPassword,
     signInWithOAuth,
-    signUp,
+    user,
     isLoading,
     error,
-    user,
   } = useAuthContext();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
