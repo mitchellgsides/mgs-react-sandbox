@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { BiMoon, BiSun } from "react-icons/bi";
 import { useAuthContext } from "../contexts/Auth/useAuthContext";
 import { PiGraph } from "react-icons/pi";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface AppHeaderProps {
   toggleTheme: () => void;
@@ -22,7 +23,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ toggleTheme, themeMode }) => {
             {title}
           </StyledRouterLink>
         </SiteTitle>
-        <Nav>Loading...</Nav>
+        <Nav>
+          <LoadingSpinner />
+        </Nav>
       </StyledHeaderWrapper>
     );
   }

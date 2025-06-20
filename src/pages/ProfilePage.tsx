@@ -4,6 +4,7 @@ import { useAuthContext } from "../contexts/Auth/useAuthContext";
 import { darkTheme } from "../theme/theme"; // Adjust path as necessary
 import type { Profile } from "../supabase/supabase.auth"; // Assuming Profile type is defined here
 import SignOutButton from "../components/SignOut";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const ProfilePage: React.FC = () => {
   const { user, profile, updateUserProfile, updatePassword, isLoading, error } =
@@ -177,7 +178,7 @@ const ProfilePage: React.FC = () => {
             </InputGroup>
             <ButtonContainer>
               <SubmitButton type="submit" disabled={isLoading}>
-                {isLoading ? "Saving..." : "Save Changes"}
+                {isLoading ? <LoadingSpinner /> : "Save Changes"}
               </SubmitButton>
               <CancelButton
                 type="button"

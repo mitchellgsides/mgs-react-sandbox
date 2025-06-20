@@ -14,11 +14,22 @@ export const isCyclingActivity = (activity: Activity | null): boolean => {
 };
 
 // Pace conversion utilities
-export const convertSpeedToPace = (speedMs: number): string => {
-  // Convert m/s to min/km
-  if (speedMs <= 0) return "0:00";
+export const convertSpeedToPace = (
+  speedValue: number,
+  isKmh: boolean = false
+): string => {
+  // Convert speed to min/km
+  if (speedValue <= 0) return "0:00";
 
-  const kmPerHour = speedMs * 3.6;
+  let kmPerHour: number;
+  if (isKmh) {
+    // Speed is already in km/h
+    kmPerHour = speedValue;
+  } else {
+    // Speed is in m/s, convert to km/h
+    kmPerHour = speedValue * 3.6;
+  }
+
   const minPerKm = 60 / kmPerHour;
 
   const minutes = Math.floor(minPerKm);
@@ -27,11 +38,22 @@ export const convertSpeedToPace = (speedMs: number): string => {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 };
 
-export const convertSpeedToPaceDecimal = (speedMs: number): number => {
-  // Convert m/s to decimal minutes per km for chart plotting
-  if (speedMs <= 0) return 0;
+export const convertSpeedToPaceDecimal = (
+  speedValue: number,
+  isKmh: boolean = false
+): number => {
+  // Convert speed to decimal minutes per km for chart plotting
+  if (speedValue <= 0) return 0;
 
-  const kmPerHour = speedMs * 3.6;
+  let kmPerHour: number;
+  if (isKmh) {
+    // Speed is already in km/h
+    kmPerHour = speedValue;
+  } else {
+    // Speed is in m/s, convert to km/h
+    kmPerHour = speedValue * 3.6;
+  }
+
   return 60 / kmPerHour; // minutes per km as decimal
 };
 
@@ -43,8 +65,15 @@ export const formatPaceTooltip = (paceDecimal: number): string => {
 };
 
 // Speed formatting for cycling
-export const formatSpeedTooltip = (speedMs: number): string => {
-  return `${(speedMs * 3.6).toFixed(1)} km/h`;
+export const formatSpeedTooltip = (
+  speedValue: number,
+  isKmh: boolean = false
+): string => {
+  if (isKmh) {
+    return `${speedValue.toFixed(1)} km/h`;
+  } else {
+    return `${(speedValue * 3.6).toFixed(1)} km/h`;
+  }
 };
 
 // Chart opacity configuration based on sport

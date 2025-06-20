@@ -6,10 +6,12 @@ import { useActivityDetailsContext } from "../../context/useActivityDetailsConte
 import { darkTheme, lightTheme } from "../../../../theme/theme";
 import { useAuthContext } from "../../../../contexts/Auth/useAuthContext";
 import { buildChartData } from "./buildChartData";
-import { isRunningActivity, convertSpeedToPace } from "../utils/sportUtils";
+// import { isRunningActivity, convertSpeedToPace } from "../utils/sportUtils";
+import { createTooltipConfig } from "./tooltipHelpers";
+import DataSummary from "./DataSummary";
 
 const HighchartsGraph = () => {
-  const { records, selectedActivity } = useActivityDetailsContext();
+  const { records, selectedActivity, speedIsKmh } = useActivityDetailsContext();
   const chartRef = useRef<HighchartsReact.RefObject>(null);
 
   // Debug logs
@@ -132,7 +134,7 @@ const HighchartsGraph = () => {
       yAxes,
       series: seriesData,
       distanceData,
-    } = buildChartData(records, currentTheme, selectedActivity);
+    } = buildChartData(records, currentTheme, selectedActivity, speedIsKmh);
 
     return {
       chart: {
@@ -148,6 +150,15 @@ const HighchartsGraph = () => {
         plotShadow: false,
         selectionMarkerFill: "rgba(0, 100, 200, 0.25)",
         animation: false,
+        panKey: "shift",
+        panning: {
+          enabled: false,
+        },
+        zooming: {
+          mouseWheel: false,
+          singleTouch: false,
+          pinchType: "",
+        },
         style: {
           fontFamily: "inherit",
         },
@@ -267,59 +278,7 @@ const HighchartsGraph = () => {
       },
       yAxis: yAxes,
       series: seriesData,
-      tooltip: {
-        shared: true,
-        crosshairs: [
-          {
-            width: 1,
-            color: "#666666",
-            dashStyle: "solid",
-          },
-          false,
-        ],
-        backgroundColor: currentTheme.colors.surface,
-        borderColor: currentTheme.colors.border,
-        borderRadius: 4,
-        shadow: true,
-        useHTML: false,
-        style: {
-          color: currentTheme.colors.text,
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        formatter: function (this: any) {
-          const timeStr = formatTime(this.x as number);
-          let tooltipContent = `<b>Time: ${timeStr}</b><br/>`;
-
-          if (this.points) {
-            this.points.forEach((point: Highcharts.Point) => {
-              const suffix =
-                (point.series.options as Highcharts.SeriesLineOptions).tooltip
-                  ?.valueSuffix || "";
-              tooltipContent += `<span style="color:${point.color}">${point.series.name}</span>: <b>${point.y}${suffix}</b><br/>`;
-            });
-          }
-
-          // Add distance information to tooltip if available
-          if (distanceData && distanceData.length > 0) {
-            // Find the closest distance data point to the current time
-            const currentTime = this.x as number;
-            const closestDistance = distanceData.reduce((prev, curr) =>
-              Math.abs(curr[0] - currentTime) < Math.abs(prev[0] - currentTime)
-                ? curr
-                : prev
-            );
-            if (closestDistance) {
-              tooltipContent += `<span style="color:${
-                currentTheme.colors.success
-              }">Distance</span>: <b>${(closestDistance[1] / 1000).toFixed(
-                2
-              )} km</b><br/>`;
-            }
-          }
-
-          return tooltipContent;
-        },
-      },
+      tooltip: createTooltipConfig(distanceData, currentTheme, formatTime),
       legend: {
         enabled: true,
         floating: false,
@@ -405,7 +364,14 @@ const HighchartsGraph = () => {
         enabled: false,
       },
     };
-  }, [records, selectedActivity, formatTime, setZoomInfo, currentTheme]);
+  }, [
+    records,
+    selectedActivity,
+    formatTime,
+    setZoomInfo,
+    currentTheme,
+    speedIsKmh,
+  ]);
 
   if (!records || records.length === 0) {
     return (
@@ -460,225 +426,7 @@ const HighchartsGraph = () => {
             updateArgs={[true, true, true]}
           />
         </ChartContainer>
-        <DataSummary>
-          <SummaryTitle>Activity Summary</SummaryTitle>
-          <SummaryTable>
-            <SummaryTableHeader>
-              <HeaderRow>
-                <MetricHeader>Metric</MetricHeader>
-                <ValueHeader>Average</ValueHeader>
-                <ValueHeader>Max</ValueHeader>
-              </HeaderRow>
-            </SummaryTableHeader>
-            <SummaryTableBody>
-              <DataRow>
-                <MetricCell>Duration</MetricCell>
-                <ValueCell>
-                  {records.length > 0 && records[records.length - 1].timer_time
-                    ? (() => {
-                        const totalSeconds =
-                          records[records.length - 1].timer_time || 0;
-                        const hours = Math.floor(totalSeconds / 3600);
-                        const minutes = Math.floor((totalSeconds % 3600) / 60);
-                        const seconds = Math.floor(totalSeconds % 60);
-
-                        if (hours > 0) {
-                          return `${hours}:${minutes
-                            .toString()
-                            .padStart(2, "0")}:${seconds
-                            .toString()
-                            .padStart(2, "0")}`;
-                        }
-                        return `${minutes}:${seconds
-                          .toString()
-                          .padStart(2, "0")}`;
-                      })()
-                    : "N/A"}
-                </ValueCell>
-                <MaxNotApplicable>-</MaxNotApplicable>
-              </DataRow>
-              <DataRow>
-                <MetricCell>Power</MetricCell>
-                <ValueCell>
-                  {records.filter((r) => r.power).length > 0
-                    ? `${Math.round(
-                        records
-                          .filter((r) => r.power)
-                          .reduce((sum, r) => sum + (r.power || 0), 0) /
-                          records.filter((r) => r.power).length
-                      )} W`
-                    : "N/A"}
-                </ValueCell>
-                <ValueCell>
-                  {records.filter((r) => r.power).length > 0
-                    ? `${Math.max(
-                        ...records
-                          .filter((r) => r.power)
-                          .map((r) => r.power || 0)
-                      )} W`
-                    : "N/A"}
-                </ValueCell>
-              </DataRow>
-              <DataRow>
-                <MetricCell>Cadence</MetricCell>
-                <ValueCell>
-                  {records.filter((r) => r.cadence).length > 0
-                    ? `${Math.round(
-                        records
-                          .filter((r) => r.cadence)
-                          .reduce((sum, r) => sum + (r.cadence || 0), 0) /
-                          records.filter((r) => r.cadence).length
-                      )} rpm`
-                    : "N/A"}
-                </ValueCell>
-                <ValueCell>
-                  {records.filter((r) => r.cadence).length > 0
-                    ? `${Math.max(
-                        ...records
-                          .filter((r) => r.cadence)
-                          .map((r) => r.cadence || 0)
-                      )} rpm`
-                    : "N/A"}
-                </ValueCell>
-              </DataRow>
-              <DataRow>
-                <MetricCell>
-                  {isRunningActivity(selectedActivity) ? "Pace" : "Speed"}
-                </MetricCell>
-                <ValueCell>
-                  {records.filter((r) => r.speed).length > 0
-                    ? (() => {
-                        const speedRecords = records.filter((r) => r.speed);
-                        const avgSpeedMs =
-                          speedRecords.reduce(
-                            (sum, r) => sum + (r.speed || 0),
-                            0
-                          ) / speedRecords.length;
-
-                        if (isRunningActivity(selectedActivity)) {
-                          // For running, show pace
-                          return convertSpeedToPace(avgSpeedMs);
-                        } else {
-                          // For cycling/other, show speed
-                          // Smart detection: if the raw average is > 15 m/s (54 km/h), it's likely already in km/h
-                          if (avgSpeedMs > 15) {
-                            return `${avgSpeedMs.toFixed(1)} km/h`;
-                          } else {
-                            return `${(avgSpeedMs * 3.6).toFixed(1)} km/h`;
-                          }
-                        }
-                      })()
-                    : "N/A"}
-                </ValueCell>
-                <ValueCell>
-                  {records.filter((r) => r.speed).length > 0
-                    ? (() => {
-                        const maxSpeedMs = Math.max(
-                          ...records
-                            .filter((r) => r.speed)
-                            .map((r) => r.speed || 0)
-                        );
-
-                        if (isRunningActivity(selectedActivity)) {
-                          // For running, show best pace (which is actually minimum time)
-                          return convertSpeedToPace(maxSpeedMs);
-                        } else {
-                          // For cycling/other, show max speed
-                          if (maxSpeedMs > 15) {
-                            return `${maxSpeedMs.toFixed(1)} km/h`;
-                          } else {
-                            return `${(maxSpeedMs * 3.6).toFixed(1)} km/h`;
-                          }
-                        }
-                      })()
-                    : "N/A"}
-                </ValueCell>
-              </DataRow>
-              <DataRow>
-                <MetricCell>Energy (kJ)</MetricCell>
-                <ValueCell>
-                  {(() => {
-                    const powerRecords = records.filter(
-                      (r) => r.power && r.timer_time
-                    );
-                    if (powerRecords.length === 0) return "N/A";
-
-                    let totalEnergy = 0;
-                    for (let i = 1; i < powerRecords.length; i++) {
-                      const timeDiff =
-                        (powerRecords[i].timer_time || 0) -
-                        (powerRecords[i - 1].timer_time || 0);
-                      const avgPower =
-                        ((powerRecords[i].power || 0) +
-                          (powerRecords[i - 1].power || 0)) /
-                        2;
-                      totalEnergy += avgPower * timeDiff; // Watts * seconds = Joules
-                    }
-                    return `${(totalEnergy / 1000).toFixed(1)} kJ`; // Convert to kilojoules
-                  })()}
-                </ValueCell>
-                <MaxNotApplicable>-</MaxNotApplicable>
-              </DataRow>
-              <SeparatorRow>
-                <td colSpan={3}></td>
-              </SeparatorRow>
-              <DataRow>
-                <MetricCell>Distance</MetricCell>
-                <ValueCell>
-                  {records.length > 0 && records[records.length - 1].distance
-                    ? `${(records[records.length - 1].distance! / 1000).toFixed(
-                        2
-                      )} km`
-                    : "N/A"}
-                </ValueCell>
-                <MaxNotApplicable>-</MaxNotApplicable>
-              </DataRow>
-              <DataRow>
-                <MetricCell>Elevation Gain</MetricCell>
-                <ValueCell>
-                  {(() => {
-                    const altitudeRecords = records.filter(
-                      (r) => r.altitude !== null && r.altitude !== undefined
-                    );
-                    if (altitudeRecords.length === 0) return "N/A";
-
-                    let totalGain = 0;
-                    for (let i = 1; i < altitudeRecords.length; i++) {
-                      const gain =
-                        (altitudeRecords[i].altitude || 0) -
-                        (altitudeRecords[i - 1].altitude || 0);
-                      if (gain > 0) totalGain += gain;
-                    }
-                    return `${Math.round(totalGain)} m`;
-                  })()}
-                </ValueCell>
-                <MaxNotApplicable>-</MaxNotApplicable>
-              </DataRow>
-              <DataRow>
-                <MetricCell>Average Elevation</MetricCell>
-                <ValueCell>
-                  {records.filter(
-                    (r) => r.altitude !== null && r.altitude !== undefined
-                  ).length > 0
-                    ? `${Math.round(
-                        records
-                          .filter(
-                            (r) =>
-                              r.altitude !== null && r.altitude !== undefined
-                          )
-                          .reduce((sum, r) => sum + (r.altitude || 0), 0) /
-                          records.filter(
-                            (r) =>
-                              r.altitude !== null && r.altitude !== undefined
-                          ).length
-                      )} m`
-                    : "N/A"}
-                </ValueCell>
-                <MaxNotApplicable>-</MaxNotApplicable>
-              </DataRow>
-            </SummaryTableBody>
-          </SummaryTable>
-        </DataSummary>
+        <DataSummary />
         {zoomInfo && (
           <ZoomSummary>
             <ZoomTitle>Zoom Selection</ZoomTitle>
@@ -743,98 +491,6 @@ const NoDataMessage = styled.div`
   color: ${(props) => props.theme.colors.text};
   font-size: 16px;
   padding: 40px;
-`;
-
-const DataSummary = styled.div`
-  border-top: 1px solid ${(props) => props.theme.colors.border};
-  padding-top: 6px;
-`;
-
-const SummaryTitle = styled.h3`
-  margin: 0 0 6px 0;
-  color: ${(props) => props.theme.colors.text};
-  font-size: 16px;
-`;
-
-const SummaryTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  background: ${(props) => props.theme.colors.surface};
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-`;
-
-const SummaryTableHeader = styled.thead`
-  background: ${(props) => props.theme.colors.primary};
-`;
-
-const SummaryTableBody = styled.tbody``;
-
-const HeaderRow = styled.tr``;
-
-const DataRow = styled.tr`
-  &:nth-child(even) {
-    background: ${(props) => props.theme.colors.background};
-  }
-
-  &:hover {
-    background: ${(props) => props.theme.colors.light};
-  }
-`;
-
-const SeparatorRow = styled.tr`
-  height: 8px;
-  background: ${(props) => props.theme.colors.border};
-
-  td {
-    padding: 0;
-    border: none;
-  }
-`;
-
-const MetricHeader = styled.th`
-  padding: 12px 16px;
-  text-align: left;
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
-`;
-
-const ValueHeader = styled.th`
-  padding: 12px 16px;
-  text-align: center;
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
-  width: 120px;
-`;
-
-const MetricCell = styled.td`
-  padding: 12px 16px;
-  color: ${(props) => props.theme.colors.text};
-  font-weight: 500;
-  font-size: 14px;
-  border-bottom: 1px solid ${(props) => props.theme.colors.border};
-`;
-
-const ValueCell = styled.td`
-  padding: 12px 16px;
-  text-align: center;
-  color: ${(props) => props.theme.colors.text};
-  font-weight: 600;
-  font-size: 14px;
-  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-  border-bottom: 1px solid ${(props) => props.theme.colors.border};
-`;
-
-const MaxNotApplicable = styled.td`
-  padding: 12px 16px;
-  text-align: center;
-  color: ${(props) => props.theme.colors.text};
-  opacity: 0.5;
-  font-size: 14px;
-  border-bottom: 1px solid ${(props) => props.theme.colors.border};
 `;
 
 const ZoomSummary = styled.div`

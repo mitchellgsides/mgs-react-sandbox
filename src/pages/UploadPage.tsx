@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { Upload, File, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { uploadFitFile } from "../supabase/utils/fitFileUpload.js";
 import { useAuthContext } from "../contexts/Auth/useAuthContext";
+import LoadingSpinner from "../components/LoadingSpinner.js";
 
 export const UploadPage = () => {
   return <FitFileUploader />;
@@ -159,7 +160,7 @@ const FitFileUploader = () => {
             ) : (
               <Upload className="w-4 h-4 mr-2" />
             )}
-            {uploading ? "Uploading..." : "Upload Files"}
+            {uploading ? <LoadingSpinner /> : "Upload Files"}
           </button>
 
           <button

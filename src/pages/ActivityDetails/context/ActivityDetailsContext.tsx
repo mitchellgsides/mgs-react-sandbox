@@ -48,6 +48,7 @@ export type ActivityDetailsContextType = {
     activityId: string,
     updates: { name?: string; description?: string }
   ) => Promise<{ success: boolean; data?: Activity; error?: string }>;
+  speedIsKmh: boolean;
 };
 
 // Provider component that will wrap components needing access to the activity details context
@@ -175,6 +176,17 @@ export const ActivityDetailsProvider: React.FC<
     [selectedActivity, user?.id, refetchActivities]
   );
 
+  // Helper to detect speed units for pace/speed calculations
+  const speedIsKmh = useMemo(() => {
+    if (!records || records.length === 0) return false;
+    const speedValues = records.filter((r) => r.speed).map((r) => r.speed!);
+    const avgSpeed =
+      speedValues.length > 0
+        ? speedValues.reduce((a, b) => a + b, 0) / speedValues.length
+        : 0;
+    return avgSpeed > 15; // Speeds > 15 m/s (~54 km/h) are likely already in km/h
+  }, [records]);
+
   const contextValue = useMemo<ActivityDetailsContextType>(
     () => ({
       activities,
@@ -190,6 +202,7 @@ export const ActivityDetailsProvider: React.FC<
       clearError: () => setError(null),
       deleteActivityById,
       updateActivityById,
+      speedIsKmh,
     }),
     [
       activities,
@@ -203,6 +216,7 @@ export const ActivityDetailsProvider: React.FC<
       refetchActivities,
       deleteActivityById,
       updateActivityById,
+      speedIsKmh,
     ]
   );
 

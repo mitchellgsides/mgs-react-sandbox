@@ -4,6 +4,9 @@ import { DateTime } from "luxon";
 import { useNavigate } from "react-router-dom";
 import { useActivityDetailsContext } from "./context/useActivityDetailsContext";
 import type { Activity } from "../../supabase/supabase.fitFiles";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import { MdDelete } from "react-icons/md";
+import { darkTheme } from "../../theme/theme";
 
 const ActivityListPage = () => {
   const navigate = useNavigate();
@@ -90,7 +93,7 @@ const ActivityListPage = () => {
               disabled={deleting}
               aria-label="Delete activity"
             >
-              🗑️
+              <MdDelete size={20} color={darkTheme.colors.text} />
             </DeleteButton>
           </ActivityActions>
         </ActivityContent>
@@ -108,7 +111,9 @@ const ActivityListPage = () => {
     return (
       <Container>
         <Title>Activities</Title>
-        <LoadingText>Loading activities...</LoadingText>
+        <LoadingText>
+          <LoadingSpinner />
+        </LoadingText>
       </Container>
     );
   }

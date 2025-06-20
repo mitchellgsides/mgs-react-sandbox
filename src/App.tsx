@@ -21,6 +21,8 @@ import ActivityDetails from "./pages/ActivityDetails/ActivityDetails";
 import ActivityListPage from "./pages/ActivityDetails/ActivityListPage";
 import { QueryClientProvider } from "./providers/QueryClientProvider";
 import ActivityDetailsProvider from "./pages/ActivityDetails/context/ActivityDetailsContext";
+import LoadingSpinner from "./components/LoadingSpinner";
+import HomePage from "./pages/HomePage";
 
 // A layout for authenticated users
 const AuthenticatedLayout: React.FC = () => {
@@ -39,7 +41,11 @@ const ProtectedRoute: React.FC<{ children?: React.ReactNode }> = ({
   const { user, isLoading } = useAuthContext();
 
   if (isLoading) {
-    return <LoadingContainer>Loading application...</LoadingContainer>;
+    return (
+      <LoadingContainer>
+        <LoadingSpinner />
+      </LoadingContainer>
+    );
   }
 
   if (!user) {
@@ -89,7 +95,9 @@ function App() {
         <Router>
           <AppWrapper>
             <AppHeader toggleTheme={toggleTheme} themeMode={themeMode} />
-            <LoadingContainer>Loading application...</LoadingContainer>
+            <LoadingContainer>
+              <LoadingSpinner />
+            </LoadingContainer>
           </AppWrapper>
         </Router>
       </ThemeProvider>
@@ -124,9 +132,7 @@ function App() {
                     path="/"
                     element={
                       <PageContainer>
-                        <TextBlock>
-                          This is your authenticated app content dashboard.
-                        </TextBlock>
+                        <HomePage />
                         <TextBlock>
                           Navigate to your <Link to="/profile">profile</Link> or
                           check out the <Link to="/calendar">calendar</Link>.

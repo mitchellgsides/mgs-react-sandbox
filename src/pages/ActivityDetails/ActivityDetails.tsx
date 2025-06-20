@@ -9,6 +9,9 @@ import {
   convertSpeedToPace,
 } from "./components/utils/sportUtils";
 import { MdEdit } from "react-icons/md";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import HighstockGraph from "./components/Highcharts/HighstockGraph";
+import { darkTheme } from "../../theme/theme";
 // import HighstockGraph from "./components/Highcharts/HighstockGraph";
 
 const ActivityDetails = () => {
@@ -37,6 +40,7 @@ const ActivityDetails = () => {
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [isHighstock, setIsHighstock] = useState(false);
 
   // Handle delete button click
   const handleDeleteClick = useCallback(() => {
@@ -147,7 +151,7 @@ const ActivityDetails = () => {
   if (loading) {
     return (
       <Container>
-        <LoadingText>Loading activity details...</LoadingText>
+        <LoadingSpinner />
       </Container>
     );
   }
@@ -163,7 +167,7 @@ const ActivityDetails = () => {
   if (!selectedActivity || selectedActivity.id !== activityId) {
     return (
       <Container>
-        <LoadingText>Loading activity data...</LoadingText>
+        <LoadingSpinner />
       </Container>
     );
   }
@@ -195,7 +199,7 @@ const ActivityDetails = () => {
             />
             <EditActions>
               <EditButton onClick={handleSaveTitle} disabled={updating}>
-                {updating ? "Saving..." : "Save"}
+                {updating ? <LoadingSpinner /> : "Save"}
               </EditButton>
               <EditButton variant="secondary" onClick={handleCancelEdit}>
                 Cancel
@@ -207,7 +211,7 @@ const ActivityDetails = () => {
             <Title>{selectedActivity.name || "Untitled Activity"}</Title>
             <EditIconWrapper>
               <EditIconButton onClick={handleEditTitle} aria-label="Edit title">
-                <MdEdit size={20} />
+                <MdEdit size={24} color={darkTheme.colors.text} />
               </EditIconButton>
             </EditIconWrapper>
           </>
@@ -215,14 +219,23 @@ const ActivityDetails = () => {
       </TitleContainer>
 
       <ChartSection>
+        <button onClick={() => setIsHighstock(!isHighstock)}>
+          {isHighstock ? "Highstock" : "Highchart"}
+        </button>
         <ChartTitle>Workout Chart</ChartTitle>
         <ChartContainer>
           {recordsLoading ? (
             <LoadingContainer>
-              <LoadingText>Loading chart data...</LoadingText>
+              <LoadingText>
+                <LoadingSpinner />
+              </LoadingText>
             </LoadingContainer>
           ) : records && records.length > 0 ? (
-            <HighchartsGraph />
+            isHighstock ? (
+              <HighstockGraph />
+            ) : (
+              <HighchartsGraph />
+            )
           ) : (
             <NoDataContainer>
               <NoDataText>No chart data available for this activity</NoDataText>
@@ -292,7 +305,7 @@ const ActivityDetails = () => {
               />
               <EditActions>
                 <EditButton onClick={handleSaveDescription} disabled={updating}>
-                  {updating ? "Saving..." : "Save"}
+                  {updating ? <LoadingSpinner /> : "Save"}
                 </EditButton>
                 <EditButton variant="secondary" onClick={handleCancelEdit}>
                   Cancel
@@ -306,7 +319,7 @@ const ActivityDetails = () => {
                 onClick={handleEditDescription}
                 aria-label="Edit description"
               >
-                <MdEdit />
+                <MdEdit size={20} color={darkTheme.colors.text} />
               </EditIconButton>
             </EditableValue>
           )}
@@ -411,6 +424,7 @@ const Title = styled.h1`
   font-family: ${({ theme }) => theme.fonts.heading};
   font-size: 2rem;
   font-weight: 600;
+  margin-right: 10px;
 `;
 
 // Title Container and Input styled components
@@ -449,7 +463,7 @@ const EditIconWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 12px;
+  margin: 6px;
 `;
 
 const ActivityCard = styled.div`
@@ -676,7 +690,7 @@ const NoDataContainer = styled(LoadingContainer)`
   background: ${({ theme }) => theme.colors.surface};
 `;
 
-const LoadingText = styled.p`
+const LoadingText = styled.div`
   color: ${({ theme }) => theme.colors.text};
   opacity: 0.7;
   font-style: italic;
@@ -758,7 +772,10 @@ const EditIconButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
   border-radius: 4px;
   font-size: 14px;
   transition: background 0.2s;

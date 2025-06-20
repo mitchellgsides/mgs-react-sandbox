@@ -12,7 +12,8 @@ import {
 export const buildChartData = (
   records: ActivityRecord[],
   theme: DefaultTheme,
-  activity: Activity | null = null
+  activity: Activity | null = null,
+  speedIsKmh: boolean = false
 ) => {
   const isRunning = isRunningActivity(activity);
   // Note: isCycling detection available for future cycling-specific features
@@ -26,7 +27,7 @@ export const buildChartData = (
     // For running activities, convert speed to pace (decimal minutes per km)
     pace:
       record.speed && isRunning
-        ? convertSpeedToPaceDecimal(record.speed)
+        ? convertSpeedToPaceDecimal(record.speed, speedIsKmh)
         : null,
     cadence: record.cadence || null,
     distance: record.distance ? record.distance : null,
@@ -55,7 +56,7 @@ export const buildChartData = (
 
   const distanceData = processedData
     .filter((d) => d.distance !== null)
-    .map((d) => [d.timeMs, d.distance!]);
+    .map((d) => [d.timeMs, d.distance! * 1000]);
 
   const altitudeData = processedData
     .filter((d) => d.altitude !== null)
@@ -273,7 +274,10 @@ export const buildChartData = (
               formatter: function (this: any) {
                 return `<span style="color:${this.color}">${
                   this.series.name
-                }</span>: <b>${formatSpeedTooltip(this.y)}</b><br/>`;
+                }</span>: <b>${formatSpeedTooltip(
+                  this.y,
+                  speedIsKmh
+                )}</b><br/>`;
               },
               useHTML: false,
             },

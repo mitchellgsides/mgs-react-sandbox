@@ -1,19 +1,76 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import Highcharts from "highcharts/highstock";
 import HighchartsReact from "highcharts-react-official";
-import styled, { useTheme } from "styled-components";
+import styled, { ThemeProvider } from "styled-components";
 import { useActivityDetailsContext } from "../../context/useActivityDetailsContext";
-import { mgsChartOptions } from "./chartOptions";
+import { darkTheme, lightTheme } from "../../../../theme/theme";
+import { useAuthContext } from "../../../../contexts/Auth/useAuthContext";
 import { buildChartData } from "./buildChartData";
+import { isRunningActivity, convertSpeedToPace } from "../utils/sportUtils";
+import { createTooltipConfig } from "./tooltipHelpers";
+import LoadingSpinner from "../../../../components/LoadingSpinner";
 
 const HighstockGraph = () => {
   const { records, selectedActivity } = useActivityDetailsContext();
-  const theme = useTheme();
+  const chartRef = useRef<HighchartsReact.RefObject>(null);
+  const { profile } = useAuthContext();
   const [zoomInfo, setZoomInfo] = useState<{
     start: string;
     end: string;
   } | null>(null);
-  // const [groupingInterval, setGroupingInterval] = useState<number>(1);
+
+  // Debug logs
+  useEffect(() => {
+    console.log("HighstockGraph - Selected Activity:", selectedActivity?.id);
+    console.log("HighstockGraph - Records:", records?.length);
+  }, [records, selectedActivity]);
+
+  // Reset state when activity changes
+  useEffect(() => {
+    setZoomInfo(null);
+  }, [selectedActivity?.id]);
+
+  // Add resize handler to reflow chart when container size changes
+  useEffect(() => {
+    let resizeTimeout: NodeJS.Timeout;
+
+    const handleResize = () => {
+      // Debounce resize events to avoid excessive reflows
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (chartRef.current?.chart) {
+          chartRef.current.chart.reflow();
+        }
+      }, 150);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Also handle when the component mounts/updates with ResizeObserver for container changes
+    let resizeObserver: ResizeObserver | null = null;
+
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+
+      // Observe the chart container if it exists
+      const chartContainer = chartRef.current?.container?.current;
+      if (chartContainer) {
+        resizeObserver.observe(chartContainer);
+      }
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(resizeTimeout);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [records, selectedActivity]);
+
+  const currentTheme = profile?.theme === "dark" ? darkTheme : lightTheme;
 
   console.log("HighstockGraph - zoomInfo:", zoomInfo);
   console.log(
@@ -36,25 +93,54 @@ const HighstockGraph = () => {
     }
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }, []);
+  // Helper to detect speed units for pace/speed calculations
+  const speedIsKmh = useMemo(() => {
+    if (!records || records.length === 0) return false;
+    const speedValues = records.filter((r) => r.speed).map((r) => r.speed!);
+    const avgSpeed =
+      speedValues.length > 0
+        ? speedValues.reduce((a, b) => a + b, 0) / speedValues.length
+        : 0;
+    return avgSpeed > 15; // Speeds > 15 m/s (~54 km/h) are likely already in km/h
+  }, [records]);
+
   const chartOptions = useMemo(() => {
     if (!records || records.length === 0) {
       return null;
     }
 
-    const { yAxes, series } = buildChartData(records, theme);
+    const {
+      yAxes,
+      series: seriesData,
+      distanceData,
+    } = buildChartData(records, currentTheme, selectedActivity, speedIsKmh);
 
     return {
       chart: {
         type: "line",
-        height: 600,
+        reflow: true,
+        height: 400,
         zoomType: "x",
-        backgroundColor: theme.colors.background,
-        marginLeft: 60,
-        marginRight: 60,
+        backgroundColor: currentTheme.colors.surface,
+        marginLeft: 50,
+        marginRight: 20,
         plotBackgroundColor: null,
         plotBorderWidth: null,
         plotShadow: false,
         selectionMarkerFill: "rgba(0, 100, 200, 0.25)",
+        animation: false,
+        panKey: "shift",
+        panning: {
+          enabled: false,
+        },
+        zooming: {
+          mouseWheel: false,
+          singleTouch: false,
+          pinchType: "",
+        },
+        style: {
+          fontFamily: "inherit",
+        },
         resetZoomButton: {
           position: {
             align: "right",
@@ -62,269 +148,140 @@ const HighstockGraph = () => {
             x: -10,
             y: 10,
           },
-          theme: {
-            fill: theme.colors.primary,
-            stroke: theme.colors.primary,
-            r: 4,
-            style: {
-              color: theme.colors.light,
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            states: {
-              hover: {
-                fill: theme.colors.secondary,
-                stroke: theme.colors.secondary,
-              },
-            },
-          },
         },
         events: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          selection: function (this: any, event: any) {
-            console.log("Highstock selection event triggered:", event);
+          click: function (
+            this: Highcharts.Chart,
+            event: Highcharts.PointerEventObject
+          ) {
+            console.log("Chart clicked:", event);
+          },
+          selection: function (
+            this: Highcharts.Chart,
+            event: Highcharts.SelectEventObject
+          ) {
+            console.log("Selection event triggered:", event);
             if (event.xAxis && event.xAxis[0]) {
+              console.log(
+                "xAxis min:",
+                event.xAxis[0].min,
+                "max:",
+                event.xAxis[0].max
+              );
               const start = formatTime(event.xAxis[0].min);
               const end = formatTime(event.xAxis[0].max);
+              console.log("Formatted times - start:", start, "end:", end);
               setZoomInfo({ start, end });
+            } else {
+              console.log("No xAxis data in selection event");
             }
             return true; // Allow the zoom
           },
         },
       },
       title: {
-        text: `Activity Data - ${
-          selectedActivity?.sport || "Unknown Sport"
-        } (Highstock)`,
+        text: `Activity Data - ${selectedActivity?.sport || "Unknown Sport"}`,
         style: {
           fontSize: "18px",
           fontWeight: "bold",
+          color: currentTheme.colors.text,
+        },
+      },
+      subtitle: {
+        text: `Drag to zoom in on time range`,
+        style: {
+          color: currentTheme.colors.text,
         },
       },
       xAxis: {
+        min: 0,
         type: "datetime",
         title: {
           text: "Active Time",
+          style: {
+            color: currentTheme.colors.text,
+          },
         },
         labels: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          formatter: function (this: any) {
-            return formatTime(this.value);
+          // eslint-isable-next-line @typescript-eslint/no-explicit-any
+          formatter: function (
+            this: Highcharts.AxisLabelsFormatterContextObject
+          ) {
+            return formatTime(this.value as number);
+          },
+          style: {
+            color: currentTheme.colors.text,
           },
         },
         events: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          afterSetExtremes: function (this: any, event: any) {
-            console.log("Highstock afterSetExtremes event triggered:", event);
+          afterSetExtremes: function (
+            this: Highcharts.Axis,
+            event: Highcharts.AxisSetExtremesEventObject
+          ) {
+            console.log("afterSetExtremes event triggered:", event);
+            console.log(
+              "Event details - trigger:",
+              event.trigger,
+              "min:",
+              event.min,
+              "max:",
+              event.max
+            );
+            const extremes = this.getExtremes();
+            console.log(
+              "Axis details - dataMin:",
+              extremes.dataMin,
+              "dataMax:",
+              extremes.dataMax
+            );
 
             if (event.min !== undefined && event.max !== undefined) {
-              // Set zoom info when extremes change
-              if (event.trigger && event.trigger !== "updatedData") {
+              // First check if we're back to full range - this is a reset
+              if (
+                event.min === extremes.dataMin &&
+                event.max === extremes.dataMax
+              ) {
+                console.log("Chart reset detected, clearing zoom info");
+                setZoomInfo(null);
+              }
+              // Only set zoom info when extremes change from user interaction, not on resets
+              else if (event.trigger && event.trigger !== "updatedData") {
                 const start = formatTime(event.min);
                 const end = formatTime(event.max);
+                console.log("Setting zoom info - start:", start, "end:", end);
                 setZoomInfo({ start, end });
-              }
-
-              // Clear zoom info if back to full range
-              if (event.min === this.dataMin && event.max === this.dataMax) {
-                setZoomInfo(null);
               }
             }
           },
         },
       },
       yAxis: yAxes,
-      // series: [
-      //   // Altitude as area chart (background) - only if data exists
-      //   ...(hasAltitudeData
-      //     ? [
-      //         {
-      //           name: "Altitude",
-      //           type: "area",
-      //           data: altitudeData,
-      //           yAxis: "altitude",
-      //           color: "rgba(127, 140, 141, 0.7)",
-      //           fillColor: "rgba(127, 140, 141, 0.4)",
-      //           lineWidth: 1,
-      //           zIndex: 1,
-      //           dataGrouping: dataGroupingConfig,
-      //           tooltip: {
-      //             valueSuffix: " m",
-      //           },
-      //           states: {
-      //             hover: {
-      //               lineWidthPlus: 1,
-      //               brightness: 0.1,
-      //             },
-      //           },
-      //         },
-      //       ]
-      //     : []),
-
-      //   // Heart Rate - only if data exists
-      //   ...(hasHeartRateData
-      //     ? [
-      //         {
-      //           name: "Heart Rate",
-      //           data: heartRateData,
-      //           yAxis: "heartrate",
-      //           color: "#e74c3c",
-      //           lineWidth: 1,
-      //           zIndex: 3,
-      //           dataGrouping: dataGroupingConfig,
-      //           tooltip: {
-      //             valueSuffix: " bpm",
-      //           },
-      //           states: {
-      //             hover: {
-      //               lineWidthPlus: 1,
-      //               brightness: 0.1,
-      //             },
-      //           },
-      //         },
-      //       ]
-      //     : []),
-
-      //   // Power - only if data exists
-      //   ...(hasPowerData
-      //     ? [
-      //         {
-      //           name: "Power",
-      //           data: powerData,
-      //           yAxis: "power",
-      //           color: "#f39c12",
-      //           lineWidth: 1,
-      //           zIndex: 3,
-      //           dataGrouping: dataGroupingConfig,
-      //           tooltip: {
-      //             valueSuffix: " W",
-      //           },
-      //           states: {
-      //             hover: {
-      //               lineWidthPlus: 1,
-      //               brightness: 0.1,
-      //             },
-      //           },
-      //         },
-      //       ]
-      //     : []),
-
-      //   // Speed - only if data exists
-      //   ...(hasSpeedData
-      //     ? [
-      //         {
-      //           name: "Speed",
-      //           data: speedData,
-      //           yAxis: "speed",
-      //           color: "#3498db",
-      //           lineWidth: 1,
-      //           zIndex: 3,
-      //           dataGrouping: dataGroupingConfig,
-      //           tooltip: {
-      //             valueSuffix: " km/h",
-      //           },
-      //           states: {
-      //             hover: {
-      //               lineWidthPlus: 1,
-      //               brightness: 0.1,
-      //             },
-      //           },
-      //         },
-      //       ]
-      //     : []),
-
-      //   // Cadence - only if data exists
-      //   ...(hasCadenceData
-      //     ? [
-      //         {
-      //           name: "Cadence",
-      //           data: cadenceData,
-      //           yAxis: "cadence",
-      //           color: "#9b59b6",
-      //           lineWidth: 1,
-      //           zIndex: 3,
-      //           dataGrouping: dataGroupingConfig,
-      //           tooltip: {
-      //             valueSuffix: " rpm",
-      //           },
-      //           states: {
-      //             hover: {
-      //               lineWidthPlus: 1,
-      //               brightness: 0.1,
-      //             },
-      //           },
-      //         },
-      //       ]
-      //     : []),
-
-      //   // Distance - only if data exists
-      //   ...(hasDistanceData
-      //     ? [
-      //         {
-      //           name: "Distance",
-      //           data: distanceData,
-      //           yAxis: "distance",
-      //           color: "#27ae60",
-      //           lineWidth: 1,
-      //           zIndex: 3,
-      //           dataGrouping: dataGroupingConfig,
-      //           tooltip: {
-      //             valueSuffix: " km",
-      //           },
-      //           states: {
-      //             hover: {
-      //               lineWidthPlus: 1,
-      //               brightness: 0.1,
-      //             },
-      //           },
-      //         },
-      //       ]
-      //     : []),
-      // ],
-      series: series,
-      tooltip: {
-        shared: true,
-        crosshairs: [
-          {
-            width: 1,
-            color: theme.colors.border,
-            dashStyle: "solid",
-          },
-          false,
-        ],
-        backgroundColor: theme.colors.surface,
-        borderColor: theme.colors.border,
-        borderRadius: 4,
-        shadow: true,
-        useHTML: false,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        formatter: function (this: any) {
-          const timeStr = formatTime(this.x);
-          let tooltipContent = `<b>Time: ${timeStr}</b><br/>`;
-
-          if (this.points) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            this.points.forEach((point: any) => {
-              const suffix = point.series.tooltipOptions?.valueSuffix || "";
-              tooltipContent += `<span style="color:${point.color}">${point.series.name}</span>: <b>${point.y}${suffix}</b><br/>`;
-            });
-          }
-
-          return tooltipContent;
-        },
-      },
+      series: seriesData,
+      tooltip: createTooltipConfig(distanceData, currentTheme, formatTime),
       legend: {
         enabled: true,
+        floating: false,
         layout: "horizontal",
-        align: "center",
+        align: "right",
         verticalAlign: "bottom",
+        itemStyle: {
+          color: currentTheme.colors.text,
+          fontSize: "12px",
+          fontWeight: "normal",
+        },
+        itemHoverStyle: {
+          color: currentTheme.colors.text,
+        },
+        itemHiddenStyle: {
+          color: currentTheme.colors.light,
+        },
       },
       plotOptions: {
         series: {
           animation: false,
           dataGrouping: {
-            enabled: true,
             groupPixelWidth: 1,
+            enabled: true,
           },
           marker: {
             enabled: false,
@@ -338,358 +295,514 @@ const HighstockGraph = () => {
           },
           states: {
             hover: {
-              lineWidthPlus: 1,
-              halo: {
-                size: 8,
-                opacity: 0.25,
-              },
+              enabled: false,
             },
             inactive: {
               opacity: 1,
             },
           },
-          events: {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            mouseOver: function (this: any) {
-              // Highlight all series when hovering over any series
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              this.chart.series.forEach((series: any) => {
-                if (series !== this) {
-                  series.setState("hover");
-                }
-              });
-            },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            mouseOut: function (this: any) {
-              // Remove hover state from all series
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              this.chart.series.forEach((series: any) => {
-                series.setState("");
-              });
-            },
-          },
         },
         line: {
-          lineWidth: 1, // Thinner lines
+          lineWidth: 1,
           states: {
             hover: {
-              lineWidthPlus: 1,
+              enabled: false,
             },
           },
         },
         area: {
-          lineWidth: 1, // Thinner lines
+          lineWidth: 1,
           states: {
             hover: {
-              lineWidthPlus: 1,
+              enabled: false,
             },
           },
         },
       },
       // Highstock-specific options
       navigator: {
-        enabled: true,
-        height: 50,
-        margin: 20,
+        enabled: false,
+        // height: 50,
+        // margin: 20,
       },
       scrollbar: {
-        enabled: true,
+        enabled: false,
       },
       rangeSelector: {
         enabled: false, // Disable the date/range selector at the top
+      },
+      responsive: {
+        rules: [
+          {
+            condition: {
+              maxWidth: 500,
+            },
+            chartOptions: {
+              chart: {
+                marginLeft: 35,
+                marginRight: 15,
+              },
+              legend: {
+                layout: "horizontal",
+                align: "center",
+                verticalAlign: "bottom",
+              },
+            },
+          },
+        ],
       },
       credits: {
         enabled: false,
       },
     };
-  }, [records, selectedActivity, formatTime, setZoomInfo, theme]);
-
-  const chartOptions2 = useMemo(() => {
-    if (!records || records.length === 0) {
-      return null;
-    }
-
-    const { yAxes, series } = buildChartData(records, theme);
-
-    return mgsChartOptions(
-      // groupingInterval,
-      formatTime,
-      setZoomInfo,
-      yAxes,
-      series,
-      theme
-    );
   }, [
     records,
-    // groupingInterval,
+    selectedActivity,
     formatTime,
     setZoomInfo,
-    theme,
-    // series,
-    // dataGroupingConfig,
+    currentTheme,
+    speedIsKmh,
   ]);
 
   if (!records || records.length === 0) {
     return (
-      <Container>
-        <NoDataMessage>No activity data available for charting</NoDataMessage>
-      </Container>
+      <ThemeProvider theme={currentTheme}>
+        <Container>
+          <NoDataMessage>No activity data available for charting</NoDataMessage>
+        </Container>
+      </ThemeProvider>
     );
   }
 
   if (!chartOptions) {
     return (
-      <Container>
-        <NoDataMessage>Loading chart data...</NoDataMessage>
-      </Container>
+      <ThemeProvider theme={currentTheme}>
+        <Container>
+          <NoDataMessage>
+            <LoadingSpinner />
+          </NoDataMessage>
+        </Container>
+      </ThemeProvider>
     );
   }
 
   return (
-    <Container>
-      <ChartContainer>
-        <HighchartsReact highcharts={Highcharts} options={chartOptions2} />
-      </ChartContainer>
-      <DataSummary>
-        <SummaryTitle>Data Summary (Highstock)</SummaryTitle>
-        <SummaryGrid>
-          <SummaryItem>
-            <SummaryLabel>Total Records:</SummaryLabel>
-            <SummaryValue>{records.length.toLocaleString()}</SummaryValue>
-          </SummaryItem>
-          <SummaryItem>
-            <SummaryLabel>Duration:</SummaryLabel>
-            <SummaryValue>
-              {Math.round((records[records.length - 1]?.timer_time || 0) / 60)}{" "}
-              min
-            </SummaryValue>
-          </SummaryItem>
-          <SummaryItem>
-            <SummaryLabel>Data Points with HR:</SummaryLabel>
-            <SummaryValue>
-              {records.filter((r) => r.heart_rate).length}
-            </SummaryValue>
-          </SummaryItem>
-          <SummaryItem>
-            <SummaryLabel>Data Points with Power:</SummaryLabel>
-            <SummaryValue>{records.filter((r) => r.power).length}</SummaryValue>
-          </SummaryItem>
-          {/* <SummaryItem>
-            <SummaryLabel>Native Grouping:</SummaryLabel>
-            <SummaryValue>
-              {groupingInterval === 1
-                ? "Disabled"
-                : `${groupingInterval}s average`}
-            </SummaryValue>
-          </SummaryItem> */}
-          <SummaryItem>
-            <SummaryLabel>Chart Type:</SummaryLabel>
-            <SummaryValue>Highstock with Navigator</SummaryValue>
-          </SummaryItem>
-        </SummaryGrid>
-      </DataSummary>
-      <ControlsSection>
-        {/* <ControlGroup>
-          <ControlLabel>Data Grouping (Highstock Native):</ControlLabel>
-          <SmoothingSelect
-            value={groupingInterval}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setGroupingInterval(Number(e.target.value))
-            }
-          >
-            <option value={1}>Disabled</option>
-            <option value={5}>5 seconds</option>
-            <option value={10}>10 seconds</option>
-            <option value={30}>30 seconds</option>
-            <option value={60}>1 minute</option>
-          </SmoothingSelect>
-        </ControlGroup> */}
+    <ThemeProvider theme={currentTheme}>
+      <Container>
+        <ChartContainer>
+          <HighchartsReact
+            ref={chartRef}
+            highcharts={Highcharts}
+            options={chartOptions}
+            allowChartUpdate={true}
+            immutable={false}
+            updateArgs={[true, true, true]}
+          />
+        </ChartContainer>
+        <DataSummary>
+          <SummaryTitle>Activity Summary</SummaryTitle>
+          <SummaryTable>
+            <SummaryTableHeader>
+              <HeaderRow>
+                <MetricHeader>Metric</MetricHeader>
+                <ValueHeader>Average</ValueHeader>
+                <ValueHeader>Max</ValueHeader>
+              </HeaderRow>
+            </SummaryTableHeader>
+            <SummaryTableBody>
+              <DataRow>
+                <MetricCell>Duration</MetricCell>
+                <ValueCell>
+                  {records.length > 0 && records[records.length - 1].timer_time
+                    ? (() => {
+                        const totalSeconds =
+                          records[records.length - 1].timer_time || 0;
+                        const hours = Math.floor(totalSeconds / 3600);
+                        const minutes = Math.floor((totalSeconds % 3600) / 60);
+                        const seconds = Math.floor(totalSeconds % 60);
 
-        {/* Test buttons for zoom functionality */}
-        <ControlGroup>
-          <button
-            onClick={() => setZoomInfo({ start: "1:23", end: "4:56" })}
-            style={{
-              padding: "6px 12px",
-              background: "#007bff",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              fontSize: "12px",
-            }}
-          >
-            Test Zoom
-          </button>
-          <button
-            onClick={() => setZoomInfo(null)}
-            style={{
-              marginLeft: "8px",
-              padding: "6px 12px",
-              background: "#dc3545",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              fontSize: "12px",
-            }}
-          >
-            Clear
-          </button>
-        </ControlGroup>
-      </ControlsSection>
+                        if (hours > 0) {
+                          return `${hours}:${minutes
+                            .toString()
+                            .padStart(2, "0")}:${seconds
+                            .toString()
+                            .padStart(2, "0")}`;
+                        }
+                        return `${minutes}:${seconds
+                          .toString()
+                          .padStart(2, "0")}`;
+                      })()
+                    : "N/A"}
+                </ValueCell>
+                <MaxNotApplicable>-</MaxNotApplicable>
+              </DataRow>
+              <DataRow>
+                <MetricCell>Power</MetricCell>
+                <ValueCell>
+                  {records.filter((r) => r.power).length > 0
+                    ? `${Math.round(
+                        records
+                          .filter((r) => r.power)
+                          .reduce((sum, r) => sum + (r.power || 0), 0) /
+                          records.filter((r) => r.power).length
+                      )} W`
+                    : "N/A"}
+                </ValueCell>
+                <ValueCell>
+                  {records.filter((r) => r.power).length > 0
+                    ? `${Math.max(
+                        ...records
+                          .filter((r) => r.power)
+                          .map((r) => r.power || 0)
+                      )} W`
+                    : "N/A"}
+                </ValueCell>
+              </DataRow>
+              <DataRow>
+                <MetricCell>Cadence</MetricCell>
+                <ValueCell>
+                  {records.filter((r) => r.cadence).length > 0
+                    ? `${Math.round(
+                        records
+                          .filter((r) => r.cadence)
+                          .reduce((sum, r) => sum + (r.cadence || 0), 0) /
+                          records.filter((r) => r.cadence).length
+                      )} rpm`
+                    : "N/A"}
+                </ValueCell>
+                <ValueCell>
+                  {records.filter((r) => r.cadence).length > 0
+                    ? `${Math.max(
+                        ...records
+                          .filter((r) => r.cadence)
+                          .map((r) => r.cadence || 0)
+                      )} rpm`
+                    : "N/A"}
+                </ValueCell>
+              </DataRow>
+              <DataRow>
+                <MetricCell>
+                  {isRunningActivity(selectedActivity) ? "Pace" : "Speed"}
+                </MetricCell>
+                <ValueCell>
+                  {records.filter((r) => r.speed).length > 0
+                    ? (() => {
+                        const speedRecords = records.filter((r) => r.speed);
+                        const avgSpeedMs =
+                          speedRecords.reduce(
+                            (sum, r) => sum + (r.speed || 0),
+                            0
+                          ) / speedRecords.length;
 
-      {zoomInfo && (
-        <ZoomSummary>
-          <ZoomTitle>Zoom Selection</ZoomTitle>
-          <ZoomTimeRange>
-            <ZoomTime>Start: {zoomInfo.start}</ZoomTime>
-            <ZoomTime>End: {zoomInfo.end}</ZoomTime>
-          </ZoomTimeRange>
-        </ZoomSummary>
-      )}
-    </Container>
+                        if (isRunningActivity(selectedActivity)) {
+                          // For running, show pace
+                          return convertSpeedToPace(avgSpeedMs, speedIsKmh);
+                        } else {
+                          // For cycling/other, show speed
+                          if (speedIsKmh) {
+                            return `${avgSpeedMs.toFixed(1)} km/h`;
+                          } else {
+                            return `${(avgSpeedMs * 3.6).toFixed(1)} km/h`;
+                          }
+                        }
+                      })()
+                    : "N/A"}
+                </ValueCell>
+                <ValueCell>
+                  {records.filter((r) => r.speed).length > 0
+                    ? (() => {
+                        const maxSpeedMs = Math.max(
+                          ...records
+                            .filter((r) => r.speed)
+                            .map((r) => r.speed || 0)
+                        );
+
+                        if (isRunningActivity(selectedActivity)) {
+                          // For running, show best pace (which is actually minimum time)
+                          return convertSpeedToPace(maxSpeedMs, speedIsKmh);
+                        } else {
+                          // For cycling/other, show max speed
+                          if (speedIsKmh) {
+                            return `${maxSpeedMs.toFixed(1)} km/h`;
+                          } else {
+                            return `${(maxSpeedMs * 3.6).toFixed(1)} km/h`;
+                          }
+                        }
+                      })()
+                    : "N/A"}
+                </ValueCell>
+              </DataRow>
+              <DataRow>
+                <MetricCell>Energy (kJ)</MetricCell>
+                <ValueCell>
+                  {(() => {
+                    const powerRecords = records.filter(
+                      (r) => r.power && r.timer_time
+                    );
+                    if (powerRecords.length === 0) return "N/A";
+
+                    let totalEnergy = 0;
+                    for (let i = 1; i < powerRecords.length; i++) {
+                      const timeDiff =
+                        (powerRecords[i].timer_time || 0) -
+                        (powerRecords[i - 1].timer_time || 0);
+                      const avgPower =
+                        ((powerRecords[i].power || 0) +
+                          (powerRecords[i - 1].power || 0)) /
+                        2;
+                      totalEnergy += avgPower * timeDiff; // Watts * seconds = Joules
+                    }
+                    return `${(totalEnergy / 1000).toFixed(1)} kJ`; // Convert to kilojoules
+                  })()}
+                </ValueCell>
+                <MaxNotApplicable>-</MaxNotApplicable>
+              </DataRow>
+              <SeparatorRow>
+                <td colSpan={3}></td>
+              </SeparatorRow>
+              <DataRow>
+                <MetricCell>Distance</MetricCell>
+                <ValueCell>
+                  {records.length > 0 && records[records.length - 1].distance
+                    ? `${(records[records.length - 1].distance! / 1000).toFixed(
+                        2
+                      )} km`
+                    : "N/A"}
+                </ValueCell>
+                <MaxNotApplicable>-</MaxNotApplicable>
+              </DataRow>
+              <DataRow>
+                <MetricCell>Elevation Gain</MetricCell>
+                <ValueCell>
+                  {(() => {
+                    const altitudeRecords = records.filter(
+                      (r) => r.altitude !== null && r.altitude !== undefined
+                    );
+                    if (altitudeRecords.length === 0) return "N/A";
+
+                    let totalGain = 0;
+                    for (let i = 1; i < altitudeRecords.length; i++) {
+                      const gain =
+                        (altitudeRecords[i].altitude || 0) -
+                        (altitudeRecords[i - 1].altitude || 0);
+                      if (gain > 0) totalGain += gain;
+                    }
+                    return `${Math.round(totalGain)} m`;
+                  })()}
+                </ValueCell>
+                <MaxNotApplicable>-</MaxNotApplicable>
+              </DataRow>
+              <DataRow>
+                <MetricCell>Average Elevation</MetricCell>
+                <ValueCell>
+                  {records.filter(
+                    (r) => r.altitude !== null && r.altitude !== undefined
+                  ).length > 0
+                    ? `${Math.round(
+                        records
+                          .filter(
+                            (r) =>
+                              r.altitude !== null && r.altitude !== undefined
+                          )
+                          .reduce((sum, r) => sum + (r.altitude || 0), 0) /
+                          records.filter(
+                            (r) =>
+                              r.altitude !== null && r.altitude !== undefined
+                          ).length
+                      )} m`
+                    : "N/A"}
+                </ValueCell>
+                <MaxNotApplicable>-</MaxNotApplicable>
+              </DataRow>
+            </SummaryTableBody>
+          </SummaryTable>
+        </DataSummary>
+        {zoomInfo && (
+          <ZoomSummary>
+            <ZoomTitle>Zoom Selection</ZoomTitle>
+            <ZoomTimeRange>
+              <ZoomTime>Start: {zoomInfo.start}</ZoomTime>
+              <ZoomTime>End: {zoomInfo.end}</ZoomTime>
+            </ZoomTimeRange>
+          </ZoomSummary>
+        )}
+      </Container>
+    </ThemeProvider>
   );
 };
 
 export default HighstockGraph;
 
-// Styled Components (reused from HighchartsGraph)
+// Styled Components
 const Container = styled.div`
-  padding: 20px;
-  background: ${({ theme }) => theme.colors.surface};
-  color: ${({ theme }) => theme.colors.text};
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin: 20px 0;
-  width: 100%;
-  max-width: 1400px;
+  width: 95%;
+  background: transparent;
+  color: ${(props) => props.theme.colors.text};
   transition: background-color 0.3s ease, color 0.3s ease;
 `;
 
 const ChartContainer = styled.div`
   width: 100%;
-  height: 700px; /* Slightly taller to accommodate navigator */
-  margin-bottom: 20px;
-  overflow-x: auto;
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: 4px;
+  margin-bottom: 6px;
+  position: relative;
+
+  /* Force the chart to be responsive */
+  & > div {
+    width: 100% !important;
+    position: relative !important;
+  }
+
+  /* Make sure the chart container takes full width and responds to size changes */
+  .highcharts-container,
+  .highcharts-root {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important;
+    max-width: none !important;
+  }
+
+  /* Ensure the SVG inside takes full width and is responsive */
+  .highcharts-container svg {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important;
+    max-width: none !important;
+  }
+
+  /* Handle chart reflow properly on resize */
+  .highcharts-container {
+    position: relative !important;
+  }
 `;
 
 const NoDataMessage = styled.div`
   text-align: center;
-  color: ${({ theme }) => theme.colors.text};
+  color: ${(props) => props.theme.colors.text};
   font-size: 16px;
   padding: 40px;
 `;
 
 const DataSummary = styled.div`
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
-  padding-top: 20px;
+  border-top: 1px solid ${(props) => props.theme.colors.border};
+  padding-top: 6px;
 `;
 
 const SummaryTitle = styled.h3`
-  margin: 0 0 12px 0;
-  color: ${({ theme }) => theme.colors.text};
+  margin: 0 0 6px 0;
+  color: ${(props) => props.theme.colors.text};
   font-size: 16px;
 `;
 
-const SummaryGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
+const SummaryTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  background: ${(props) => props.theme.colors.surface};
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
-const SummaryItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: ${({ theme }) => theme.colors.background};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 4px;
+const SummaryTableHeader = styled.thead`
+  background: ${(props) => props.theme.colors.primary};
 `;
 
-const SummaryLabel = styled.span`
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 14px;
-  opacity: 0.8;
+const SummaryTableBody = styled.tbody``;
+
+const HeaderRow = styled.tr``;
+
+const DataRow = styled.tr`
+  &:nth-child(even) {
+    background: ${(props) => props.theme.colors.background};
+  }
+
+  &:hover {
+    background: ${(props) => props.theme.colors.light};
+  }
 `;
 
-const SummaryValue = styled.span`
-  color: ${({ theme }) => theme.colors.text};
+const SeparatorRow = styled.tr`
+  height: 8px;
+  background: ${(props) => props.theme.colors.border};
+
+  td {
+    padding: 0;
+    border: none;
+  }
+`;
+
+const MetricHeader = styled.th`
+  padding: 12px 16px;
+  text-align: left;
+  color: white;
   font-weight: 600;
   font-size: 14px;
 `;
 
-const ZoomSummary = styled.div`
-  background: ${({ theme }) => theme.colors.background};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 6px;
+const ValueHeader = styled.th`
   padding: 12px 16px;
-  margin-bottom: 16px;
+  text-align: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  width: 120px;
+`;
+
+const MetricCell = styled.td`
+  padding: 12px 16px;
+  color: ${(props) => props.theme.colors.text};
+  font-weight: 500;
+  font-size: 14px;
+  border-bottom: 1px solid ${(props) => props.theme.colors.border};
+`;
+
+const ValueCell = styled.td`
+  padding: 12px 16px;
+  text-align: center;
+  color: ${(props) => props.theme.colors.text};
+  font-weight: 600;
+  font-size: 14px;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  border-bottom: 1px solid ${(props) => props.theme.colors.border};
+`;
+
+const MaxNotApplicable = styled.td`
+  padding: 12px 16px;
+  text-align: center;
+  color: ${(props) => props.theme.colors.text};
+  opacity: 0.5;
+  font-size: 14px;
+  border-bottom: 1px solid ${(props) => props.theme.colors.border};
+`;
+
+const ZoomSummary = styled.div`
+  background: ${(props) => props.theme.colors.background};
+  border: 1px solid ${(props) => props.theme.colors.border};
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
 const ZoomTitle = styled.h4`
-  margin: 0 0 8px 0;
-  color: ${({ theme }) => theme.colors.text};
+  margin: 0 0 6px 0;
+  color: ${(props) => props.theme.colors.text};
   font-size: 14px;
   font-weight: 600;
 `;
 
 const ZoomTimeRange = styled.div`
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
 `;
 
 const ZoomTime = styled.span`
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${(props) => props.theme.colors.surface};
+  border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 13px;
   font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-  color: ${({ theme }) => theme.colors.text};
+  color: ${(props) => props.theme.colors.text};
   font-weight: 500;
 `;
-
-const ControlsSection = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 12px 16px;
-  background: ${({ theme }) => theme.colors.light};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 6px;
-  flex-wrap: wrap;
-  gap: 12px;
-`;
-
-const ControlGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-// const ControlLabel = styled.label`
-//   font-size: 14px;
-//   font-weight: 500;
-//   color: #1565c0; /* Blue color to distinguish */
-//   margin-right: 8px;
-// `;
-
-// const SmoothingSelect = styled.select`
-//   padding: 6px 12px;
-//   border: 1px solid #64b5f6;
-//   border-radius: 4px;
-//   background: white;
-//   font-size: 14px;
-//   color: #1565c0;
-//   cursor: pointer;
-
-//   &:focus {
-//     outline: none;
-//     border-color: #1976d2;
-//     box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.25);
-//   }
-// `;
